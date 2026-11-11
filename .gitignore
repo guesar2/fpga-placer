@@ -23,6 +23,7 @@ benchmarks*/
 .vscode/
 .idea/
 *.swp
+*.pdf
 
 # A/B test outputs (scripts/ab.sh)
 ab_out/

@@ -1,0 +1,156 @@
+diff --git a/README.md b/README.md
+index 516f73a..4d19e17 100644
+--- a/README.md
++++ b/README.md
+@@ -238,3 +238,35 @@ presupuesto). Con la re-planificación por temperatura, las corridas terminan
+ al ≈ 94 % del presupuesto sin cortar el enfriamiento, con HPWL equivalente
+ (FPGA03 2.951 M vs. 2.942 M; FPGA04 5.433 M vs. 5.428 M; diferencia dentro del
+ ruido entre semillas).
++
++## Conservación del mejor estado del annealing
++
++Con `--keep-best`, esta versión conserva el placement de menor HPWL visitado durante cada búsqueda,
++incluyendo el placement con el que comienza. Al terminar el enfriamiento, recupera
++ese estado antes de la pasada greedy y del refinamiento por medianas.
++
++No cambia las propuestas ni la probabilidad de aceptación del annealing. Lleva
++registro de las celdas modificadas desde el último mínimo, y solo copia esas
++coordenadas cuando aparece un nuevo mínimo. El espacio adicional es O(celdas).
++La restauración reconstruye ocupación y bounding boxes usando `setPositions()`.
++
++La opción es experimental y está desactivada por defecto: activar con `--keep-best`.
++Para usar el comportamiento anterior, omitirla o añadir `--no-keep-best`. Con `--verbose` se informa cuando se restaura un estado.
++
++Importante: comenzar el refinamiento desde un mejor estado no garantiza un mejor
++resultado final que la versión anterior, porque el refinamiento puede seguir otro
++camino. Comparar varias semillas y medir también los tiempos. Esta primera prueba
++usa esfuerzo fijo; no sustituye una comparación posterior con igual tiempo total.
++
++Para reproducir la comparación con cinco semillas por benchmark:
++
++```bash
++make
++python3 tests/compare_best.py --benchmarks /ruta/benchmarks__0411_entrega --effort 0.005
++```
++
++El script ejecuta ambas variantes para FPGA00 a FPGA04, verifica cada salida con
++el evaluador del curso y guarda CSV, placements y logs en `best_comparison/`.
++Requiere Python 3 y el ejecutable `evaluator` en la carpeta de benchmarks.
++La carpeta `experiments/best_state/` contiene los resultados de la comparación
++realizada al introducir este cambio, y un resumen de sus límites.
+diff --git a/src/main.cpp b/src/main.cpp
+index 6fbd6ab..a7a7740 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -59,6 +59,8 @@ static void usage() {
+                  "                   (default 0; ignored if --t0-scale or --r0 is given)\n"
+                  "  --fixed-schedule with a time budget, keep the calibrated moves per temperature\n"
+                  "                   instead of re-planning them at each step from the measured rate\n"
++                 "  --keep-best      restore best annealing state before refinement (experimental)\n"
++                 "  --no-keep-best   disable best-state restoration (default)\n"
+                  "  --verbose        print annealing progress\n", kWarmT0Scale, kWarmR0);
+ }
+ 
+@@ -77,7 +79,7 @@ int main(int argc, char** argv) {
+     unsigned seed = 1;
+     int runs = -1, threads = -1;
+     double budget = -1, effort = -1;
+-    bool verbose = false, fixedSchedule = false;
++    bool verbose = false, fixedSchedule = false, keepBest = false;
+     std::string init = "qp";
+     double t0Scale = -1, r0 = -1;
+     int warmRuns = 0;
+@@ -94,6 +96,8 @@ int main(int argc, char** argv) {
+         else if (a == "--time-budget") budget = std::atof(val());
+         else if (a == "--effort") effort = std::atof(val());
+         else if (a == "--verbose") verbose = true;
++        else if (a == "--keep-best") keepBest = true;
++        else if (a == "--no-keep-best") keepBest = false;
+         else if (a == "--fixed-schedule") fixedSchedule = true;
+         else if (a == "--init") init = val();
+         else if (a == "--t0-scale") t0Scale = std::atof(val());
+@@ -190,6 +194,7 @@ int main(int argc, char** argv) {
+                 Rng rng(res.seed);
+                 Placement P(base);
+                 AnnealOptions opt;
++                opt.keepBest = keepBest;
+                 opt.effort = effort;
+                 opt.start = start;
+                 opt.deadline = batchEnd - 0.05 * (batchEnd - t0) / (b + 1);  // leave room for refinement
+diff --git a/src/optimize.cpp b/src/optimize.cpp
+index a05df4c..a3be569 100644
+--- a/src/optimize.cpp
++++ b/src/optimize.cpp
+@@ -90,12 +90,44 @@ AnnealStats anneal(Placement& P, Rng& rng, const AnnealOptions& opt) {
+     long long movesPerT = std::max(100LL, (long long)(opt.effort * nPow));
+     const long long maxMovesPerT = std::max(movesPerT, (long long)(opt.maxEffort * nPow));
+ 
++    // Track only cells touched since the last record. Copying all positions on
++    // every new minimum would be expensive on large designs. Each accepted
++    // move adds at most two cells; record updates copy only those dirty cells.
++    long long bestCost = P.cost;
++    bool tracking = opt.keepBest;
++    std::vector<int> bestX, bestY, dirty;
++    std::vector<unsigned char> touched;
++    if (opt.keepBest) {
++        bestX = P.x;
++        bestY = P.y;
++        touched.assign(D.numCells(), 0);
++    }
++    auto mark = [&](int c) {
++        if (c >= 0 && !touched[c]) {
++            touched[c] = 1;
++            dirty.push_back(c);
++        }
++    };
++
+     auto tryMove = [&](double temp, int R) -> bool {
+         int a = mov[rng.below(N)], tx, ty;
+         if (!proposeTarget(P, a, R, rng, tx, ty)) return false;
+         long long d = P.evaluate(a, tx, ty);
+         if (d <= 0 || (temp > 0 && rng.uniform() < std::exp(-(double)d / temp))) {
++            if (tracking) {
++                mark(a);
++                mark(P.occ[P.site(tx, ty)]);
++            }
+             P.commit();
++            if (tracking && P.cost < bestCost) {
++                for (int c : dirty) {
++                    bestX[c] = P.x[c];
++                    bestY[c] = P.y[c];
++                    touched[c] = 0;
++                }
++                dirty.clear();
++                bestCost = P.cost;
++            }
+             return true;
+         }
+         return false;
+@@ -146,6 +178,15 @@ AnnealStats anneal(Placement& P, Rng& rng, const AnnealOptions& opt) {
+                          opt.runId, st.temperatures, T, P.cost, ar, rlim, movesPerT, secondsSince(opt.start));
+         if (T < 0.005 * (double)P.cost / D.numNets()) break;
+     }
++    // Resume from the best visited placement, including the initial placement.
++    // Tracking never consumes random numbers or changes annealing decisions.
++    if (opt.keepBest && P.cost > bestCost) {
++        if (opt.verbose)
++            std::fprintf(stderr, "[run %d] restore best HPWL %lld -> %lld\n", opt.runId, P.cost, bestCost);
++        P.setPositions(bestX, bestY);
++    }
++    // Tracking is finished: the zero-temperature pass cannot increase HPWL.
++    tracking = false;
+     // Final zero-temperature pass (greedy) with the smallest window.
+     for (long long m = 0; m < movesPerT; m++) {
+         tryMove(0.0, 1);
+diff --git a/src/optimize.hpp b/src/optimize.hpp
+index f9ce492..1bbe6f9 100644
+--- a/src/optimize.hpp
++++ b/src/optimize.hpp
+@@ -31,6 +31,7 @@ using Clock = std::chrono::steady_clock;
+ double secondsSince(Clock::time_point t0);
+ 
+ struct AnnealOptions {
++    bool keepBest = false;      // experimental: restore best state before greedy refinement
+     double effort = 1.0;         // moves per temperature = effort * Nmovable^(4/3)  (VPR's inner_num)
+     Clock::time_point start;     // program start
+     double deadline = 1e18;      // seconds after start; annealing stops early if reached

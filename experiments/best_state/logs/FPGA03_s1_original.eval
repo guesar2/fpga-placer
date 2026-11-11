@@ -1,0 +1,24 @@
+[INF] Reading site map file /workspace/scratch/88cea7a2234c/inspect/benchmarks__0411_entrega/FPGA03/FPGA03.sitemap
+[INF] Reading placement file /workspace/scratch/88cea7a2234c/inspect/benchmarks__0411_entrega/FPGA03/FPGA03.pl
+[INF] Reading net file /workspace/scratch/88cea7a2234c/inspect/benchmarks__0411_entrega/FPGA03/FPGA03.nets
+[INF] Reading placement file /workspace/scratch/88cea7a2234c/inspect/comparison/FPGA03_s1_original.pl
+[INF] Checking placement integrity ...... PASS
+[INF] Checking placement legality ...... PASS
+[INF] ===================================
+[INF]                HPWL                
+[INF] ===================================
+[INF] Ref. Placement:  53266524
+[INF] Test Placement:  3871986
+[INF] Diff:            -0.93%
+[INF] ===================================
+[INF] ===================================
+[INF]               ABU10                
+[INF] ===================================
+[INF] Ref. Placement
+[INF]     6  x 6 :   0.805
+[INF]     12 x 12:   0.730
+[INF] -----------------------------------
+[INF] Test Placement
+[INF]     6 X 6:     1.000
+[INF]     12 x 12:   1.000
+[INF] ===================================

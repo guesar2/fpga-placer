@@ -31,6 +31,7 @@ using Clock = std::chrono::steady_clock;
 double secondsSince(Clock::time_point t0);
 
 struct AnnealOptions {
+    bool keepBest = false;      // experimental: restore best state before greedy refinement
     double effort = 1.0;         // moves per temperature = effort * Nmovable^(4/3)  (VPR's inner_num)
     Clock::time_point start;     // program start
     double deadline = 1e18;      // seconds after start; annealing stops early if reached

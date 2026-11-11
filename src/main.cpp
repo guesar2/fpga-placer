@@ -79,6 +79,8 @@ static void usage() {
                  "  --fine-t0 F / --fine-r0 F  start of the flat anneal after unclustering (default 0.3 / 0.02)\n"
                  "  --fixed-schedule with a time budget, keep the calibrated moves per temperature\n"
                  "                   instead of re-planning them at each step from the measured rate\n"
+                 "  --keep-best      restore best annealing state before refinement (experimental)\n"
+                 "  --no-keep-best   disable best-state restoration (default)\n"
                  "  --verbose        print annealing progress\n", kWarmT0Scale, kWarmR0);
 }
 
@@ -97,7 +99,7 @@ int main(int argc, char** argv) {
     unsigned seed = 1;
     int runs = -1, threads = -1;
     double budget = -1, effort = -1;
-    bool verbose = false, fixedSchedule = false;
+    bool verbose = false, fixedSchedule = false, keepBest = false;
     std::string init = "qp";
     double t0Scale = -1, r0 = -1;
     int warmRuns = 0;
@@ -117,6 +119,8 @@ int main(int argc, char** argv) {
         else if (a == "--time-budget") budget = std::atof(val());
         else if (a == "--effort") effort = std::atof(val());
         else if (a == "--verbose") verbose = true;
+        else if (a == "--keep-best") keepBest = true;
+        else if (a == "--no-keep-best") keepBest = false;
         else if (a == "--fixed-schedule") fixedSchedule = true;
         else if (a == "--init") init = val();
         else if (a == "--t0-scale") t0Scale = std::atof(val());
@@ -233,6 +237,7 @@ int main(int argc, char** argv) {
                 Rng rng(res.seed);
                 Placement P(base);
                 AnnealOptions opt;
+                opt.keepBest = keepBest;
                 opt.effort = effort;
                 opt.start = start;
                 opt.deadline = batchEnd - 0.05 * (batchEnd - t0) / (b + 1);  // leave room for refinement

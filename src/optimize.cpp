@@ -90,12 +90,44 @@ AnnealStats anneal(Placement& P, Rng& rng, const AnnealOptions& opt) {
     long long movesPerT = std::max(100LL, (long long)(opt.effort * nPow));
     const long long maxMovesPerT = std::max(movesPerT, (long long)(opt.maxEffort * nPow));
 
+    // Track only cells touched since the last record. Copying all positions on
+    // every new minimum would be expensive on large designs. Each accepted
+    // move adds at most two cells; record updates copy only those dirty cells.
+    long long bestCost = P.cost;
+    bool tracking = opt.keepBest;
+    std::vector<int> bestX, bestY, dirty;
+    std::vector<unsigned char> touched;
+    if (opt.keepBest) {
+        bestX = P.x;
+        bestY = P.y;
+        touched.assign(D.numCells(), 0);
+    }
+    auto mark = [&](int c) {
+        if (c >= 0 && !touched[c]) {
+            touched[c] = 1;
+            dirty.push_back(c);
+        }
+    };
+
     auto tryMove = [&](double temp, int R) -> bool {
         int a = mov[rng.below(N)], tx, ty;
         if (!proposeTarget(P, a, R, rng, tx, ty)) return false;
         long long d = P.evaluate(a, tx, ty);
         if (d <= 0 || (temp > 0 && rng.uniform() < std::exp(-(double)d / temp))) {
+            if (tracking) {
+                mark(a);
+                mark(P.occ[P.site(tx, ty)]);
+            }
             P.commit();
+            if (tracking && P.cost < bestCost) {
+                for (int c : dirty) {
+                    bestX[c] = P.x[c];
+                    bestY[c] = P.y[c];
+                    touched[c] = 0;
+                }
+                dirty.clear();
+                bestCost = P.cost;
+            }
             return true;
         }
         return false;
@@ -146,6 +178,15 @@ AnnealStats anneal(Placement& P, Rng& rng, const AnnealOptions& opt) {
                          opt.runId, st.temperatures, T, P.cost, ar, rlim, movesPerT, secondsSince(opt.start));
         if (T < 0.005 * (double)P.cost / D.numNets()) break;
     }
+    // Resume from the best visited placement, including the initial placement.
+    // Tracking never consumes random numbers or changes annealing decisions.
+    if (opt.keepBest && P.cost > bestCost) {
+        if (opt.verbose)
+            std::fprintf(stderr, "[run %d] restore best HPWL %lld -> %lld\n", opt.runId, P.cost, bestCost);
+        P.setPositions(bestX, bestY);
+    }
+    // Tracking is finished: the zero-temperature pass cannot increase HPWL.
+    tracking = false;
     // Final zero-temperature pass (greedy) with the smallest window.
     for (long long m = 0; m < movesPerT; m++) {
         tryMove(0.0, 1);
