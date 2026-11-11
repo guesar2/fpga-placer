@@ -1,0 +1,11 @@
+benchmark,config,effort,seed,hpwl,time_s,temps,legal,args,host,parallel
+FPGA02,flat,1.0,1,756244,118.77,119,PASS,,localhost.localdomain,2
+FPGA02,flat,1.0,2,753643,120.03,119,PASS,,localhost.localdomain,2
+FPGA02,flat,1.0,3,750265,117.00,120,PASS,,localhost.localdomain,2
+FPGA02,flat,1.0,4,759717,116.06,119,PASS,,localhost.localdomain,2
+FPGA02,flat,1.0,5,766764,114.81,119,PASS,,localhost.localdomain,2
+FPGA02,clu4,1.0,1,709081,119.67,108,PASS,--cluster 4,localhost.localdomain,2
+FPGA02,clu4,1.0,2,692958,121.34,105,PASS,--cluster 4,localhost.localdomain,2
+FPGA02,clu4,1.0,3,695770,120.87,106,PASS,--cluster 4,localhost.localdomain,2
+FPGA02,clu4,1.0,4,698793,121.37,107,PASS,--cluster 4,localhost.localdomain,2
+FPGA02,clu4,1.0,5,715315,120.21,107,PASS,--cluster 4,localhost.localdomain,2

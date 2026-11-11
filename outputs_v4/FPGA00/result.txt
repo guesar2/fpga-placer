@@ -1,0 +1,1 @@
+RESULT hpwl=10359 best_seed=4 mean_hpwl=11344 runs=4 effort=30.0000 time=6.84s

@@ -1,0 +1,7 @@
+benchmark,config,effort,seed,hpwl,time_s,temps,legal,args,host,parallel
+FPGA04,clu8,1.0,2,5373587,975.76,103,PASS,--cluster 8,localhost.localdomain,2
+FPGA04,clu8,1.0,1,5409546,1003.80,104,PASS,--cluster 8,localhost.localdomain,2
+FPGA03,clu8,1.0,1,2881960,687.10,103,PASS,--cluster 8,localhost.localdomain,2
+FPGA04,clu8,1.0,3,5362910,863.02,104,PASS,--cluster 8,localhost.localdomain,2
+FPGA03,clu8,1.0,2,2832330,657.89,103,PASS,--cluster 8,localhost.localdomain,2
+FPGA03,clu8,1.0,3,2850845,651.92,102,PASS,--cluster 8,localhost.localdomain,2

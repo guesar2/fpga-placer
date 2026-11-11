@@ -1,8 +1,10 @@
 # IE0411 – Placement para FPGA
 
 Placer de línea de comandos en C++17: placement inicial analítico (cuadrático
-con dispersión por anclas), *simulated annealing* a baja temperatura con
-actualización incremental del HPWL y refinamiento greedy por medianas. Ejecuta varias corridas independientes en paralelo (una semilla por
+con dispersión por anclas), *simulated annealing* en dos niveles (primero
+sobre *clusters* de celdas muy conectadas, luego sobre la netlist completa a
+baja temperatura) con actualización incremental del HPWL, y refinamiento
+greedy por medianas. Ejecuta varias corridas independientes en paralelo (una semilla por
 corrida) y conserva la mejor.
 
 
@@ -35,7 +37,7 @@ Ejemplo:
 | `--seed S` | semilla base; la corrida *i* usa `S+i` | 1 |
 | `--runs K` | corridas independientes; se guarda la mejor | nº de núcleos (máx. 4) |
 | `--threads T` | hilos de trabajo | `min(runs, núcleos)` |
-| `--time-budget S` | tiempo objetivo total en segundos | `20 + 0.012 · celdas móviles` |
+| `--time-budget S` | tiempo objetivo total en segundos | `min(3 h, 60 + 3.8·10⁻⁷ · N^2.195)`, N = celdas móviles (ver abajo) |
 | `--effort E` | esfuerzo fijo del annealing (`inner_num` de VPR); desactiva la calibración y, si no se da `--time-budget`, el límite de tiempo | calibrado |
 | `--init MODO` | placement inicial: `qp` (analítico) o `given` (el `.pl` de entrada) | `qp` |
 | `--t0-scale F` | T0 = F · σ(ΔHPWL) de movimientos aleatorios | 1 (`qp`), 20 (`given`) |
@@ -43,21 +45,60 @@ Ejemplo:
 | `--qp-iters K` | iteraciones de dispersión del placement analítico | 24 |
 | `--qp-growth G` | factor de crecimiento del peso de las anclas | 1.6 |
 | `--warm-runs W` | con `--init qp`, las últimas W corridas usan un arranque más caliente (`t0-scale 4`, `r0 0.15`); se ignora si se da `--t0-scale` o `--r0` | 0 |
+| `--cluster K` | tamaño máximo de los clusters (bloques de K sitios); 0 = sin clustering | 8 |
+| `--coarse-share F` | con presupuesto de tiempo, fracción del tiempo de annealing para la fase de clusters | 0.5 |
+| `--coarse-effort E` | esfuerzo de la fase de clusters con `--effort` fijo | igual a `--effort` |
+| `--fine-t0 F`, `--fine-r0 F` | arranque del annealing plano después de deshacer los clusters | 0.3, 0.02 |
 | `--fixed-schedule` | con presupuesto de tiempo, mantiene fijos los movimientos por temperatura calibrados (sin re-planificar en cada paso) | re-planificación activa |
+| `--window-passes P` | optimización exacta por ventanas después del refinamiento: P pasadas (ver *Algoritmo*) | 0 (desactivada) |
+| `--window R,C` | ventana de R sitios × C columnas de un mismo tipo (máx. 8 sitios) | 3,2 |
 | `--verbose` | muestra el progreso | – |
 
 Al terminar se imprime en `stdout` una línea
 `RESULT hpwl=... best_seed=... mean_hpwl=... runs=... effort=... time=...s`.
 
+### Presupuesto de tiempo por defecto
+
+Es una sola ley de potencia en el número de celdas móviles N, ajustada con
+`scripts/budget_fit.py` para quedar en el 70 % del límite de tiempo de los
+benchmarks cuyo límite es el más restrictivo (FPGA01–03), con un tope de 3 h.
+No hay valores por benchmark; FPGA05 recibe el valor de la misma fórmula.
+
+| Benchmark | N | presupuesto | límite |
+|---|---|---|---|
+| FPGA00 | 245 | 1.0 min | 5 min |
+| FPGA01 | 9 470 | 4.4 min | 6 min |
+| FPGA02 | 14 634 | 9.8 min | 15 min |
+| FPGA03 | 45 537 | 107 min | 150 min |
+| FPGA04 | 46 503 | 112 min | 240 min |
+
+El presupuesto se cuenta desde el inicio del programa: la lectura, el
+placement analítico y el clustering consumen parte de él, y fuera del
+presupuesto sólo quedan la verificación final y la escritura del archivo.
+La re-planificación del annealing (ver *Algoritmo*) ajusta el trabajo a la
+velocidad medida; en la corrida final (6 núcleos) FPGA02–04 terminaron al
+93–95 % de su presupuesto y FPGA01 al 83 %, y con 1–2 hilos (FPGA01/02) al
+83–98 %, sin cortes por tiempo (ver *Máquinas con menos núcleos*). Sólo se
+ha medido en esta máquina.
+Gráfico del ajuste: `budget_fit.png`.
+
 ### Reproducibilidad
 
 Con `--effort` fijo, la misma combinación de `--seed`, `--runs` y `--effort`
-produce exactamente el mismo placement en cualquier máquina. En modo
+produce exactamente el mismo placement con el mismo ejecutable, en cualquier
+máquina. Otro compilador u otras opciones de compilación pueden cambiar el
+redondeo de punto flotante del placement analítico inicial y, con él, el
+resultado final (en las pruebas sólo cambió FPGA00, dentro de la variación
+entre semillas). Las salidas de `outputs/` se generaron con `bin/placer-v5`,
+compilado con `-march=native`; el `Makefile` ya no usa `-march=native` para que
+el ejecutable funcione en cualquier procesador x86-64 (misma velocidad medida). En modo
 `--time-budget` el esfuerzo se calibra midiendo la velocidad de la máquina y,
 además, los movimientos por temperatura se re-planifican durante la corrida a
-partir de la velocidad medida, por lo que el resultado depende de la máquina;
-el esfuerzo efectivo usado se imprime (`eff.effort ...`) para poder repetir la
-corrida con `--effort`. Si una corrida llega al límite de tiempo antes de terminar el
+partir de la velocidad medida, por lo que el resultado depende de la máquina.
+El esfuerzo calibrado (`effort=` en la línea `RESULT`) y el efectivo de cada
+corrida (`eff.effort ...`) se imprimen; repetir con `--effort` da una corrida
+de esfuerzo parecido pero no idéntica, porque con esfuerzo fijo los
+movimientos por temperatura no se re-planifican. Si una corrida llega al límite de tiempo antes de terminar el
 enfriamiento, se marca como `[deadline hit: not reproducible]`.
 
 ### Scripts
@@ -65,6 +106,10 @@ enfriamiento, se marca como `[deadline hit: not reproducible]`.
 ```bash
 scripts/run_benchmarks.sh <dir_benchmarks> <dir_salida> [opciones]   # tabla HPWL / legalidad / tiempo
 scripts/seed_study.sh <dir_benchmark> 5 [opciones]                    # mejor, promedio, desviación, tiempo
+scripts/ab.sh <dir_benchmarks> <binario_A> <binario_B> FPGA03,FPGA04 [opciones]  # A/B secuencial con el mismo presupuesto
+scripts/budget_fit.py --bench-dir <dir_benchmarks> --sweep sweep.csv  # ajuste del presupuesto por defecto + gráfico
+scripts/budget_ab.sh <dir_benchmarks> FPGA03 600 2 salida.csv ./placer "plano:--cluster 0" "s05:--coarse-share 0.5"
+                                                                      # configuraciones con igual presupuesto, 1 hilo, CSV
 ```
 
 ### Barridos de parámetros (`scripts/sweep.py`, `scripts/summarize.py`)
@@ -98,6 +143,43 @@ compara cada una contra la de referencia (`--ref`, por defecto `cold`) con el
 estadístico t de Welch, y estima el HPWL esperado del mejor de K corridas
 frente a una sola corrida con K veces el esfuerzo.
 
+## Estructura del código
+
+Dependencias entre módulos (cada uno usa los de su izquierda):
+`design` → `placement` → `optimize` / `analytic` → `cluster` → `main`.
+
+| Archivo (`src/`) | Descripción | Usa |
+|---|---|---|
+| `design.{hpp,cpp}` | Lectura de `.sitemap`, `.nets` y `.pl`; ids enteros, listas red→celdas y celda→redes, índice de sitios por tipo. | — |
+| `placement.{hpp,cpp}` | Estado de la colocación: posiciones, ocupación de sitios, cajas de cada red con conteo de bordes, HPWL incremental (`evaluate`/`commit`), verificación de legalidad. | `design` |
+| `optimize.{hpp,cpp}` | RNG con semilla, recocido simulado tipo VPR, refinamiento greedy por medianas, medición de la tasa de movimientos. | `placement` |
+| `analytic.{hpp,cpp}` | Colocación inicial cuadrática (gradiente conjugado), dispersión por anclas y legalizador. | `placement` |
+| `cluster.{hpp,cpp}` | Agrupamiento de celdas (heavy-edge) en bloques verticales, problema grueso y desagrupamiento legal. | `design`, `optimize`, `analytic` |
+| `main.cpp` | CLI y flujo completo: carga → analítico → agrupamiento → recocidos en paralelo → refinamiento → verificación → escritura. | todos |
+
+### Flujo de ejecución
+
+```mermaid
+flowchart TD
+    A["Lectura de .sitemap / .nets / .pl<br/>(design)"] --> B["Colocación cuadrática + dispersión por anclas<br/>+ legalización (analytic)"]
+    B --> C["Calibración del esfuerzo según el<br/>presupuesto de tiempo (main)"]
+    C --> D{"¿Agrupamiento aplicable?<br/>(--cluster K, tipos con muchas celdas)"}
+    D -- sí --> E["Construir clústeres heavy-edge<br/>(cluster, compartido por todas las corridas)"]
+    D -- no --> G
+    E --> F
+    subgraph R["K corridas en paralelo, semillas S, S+1, … (main + optimize)"]
+        F["Recocido del problema grueso"] --> F2["Desagrupar (legal por construcción)"]
+        F2 --> G["Recocido plano<br/>(frío: --fine-t0 / --fine-r0)"]
+        G --> H["Refinamiento greedy por medianas"]
+    end
+    H --> I["Elegir la mejor corrida"]
+    I --> J["Verificar legalidad y recalcular HPWL<br/>(placement)"]
+    J --> K["Escribir new_*.pl y línea RESULT"]
+```
+
+Sin agrupamiento (o con `--cluster 0`), cada corrida empieza directamente en el
+recocido plano desde la colocación analítica.
+
 ## Algoritmo
 
 1. **Lectura y estructuras de datos.** Celdas y nets con identificadores enteros
@@ -121,7 +203,23 @@ frente a una sola corrida con K veces el esfuerzo.
    La legalización asigna a cada celda (en orden de distancia al centroide) el
    sitio libre compatible más cercano, usando arreglos *union-find* de
    "siguiente sitio libre" por columna.
-4. **Simulated annealing** con el esquema adaptativo de VPR: temperatura inicial
+4. **Clustering y annealing en dos niveles** (idea de la colocación guiada por
+   clustering; Kahng et al., DAC 2024). Se agrupan celdas del mismo tipo con
+   *heavy-edge matching* (Karypis y Kumar): el peso entre dos celdas es
+   Σ 1/(|e|−1) sobre las nets que comparten (nets de ≤16 pines), y se unen
+   pares repetidamente hasta clusters de ≤K celdas. La parte propia de FPGA:
+   un cluster ocupa un **bloque** de K sitios consecutivos de su tipo en una
+   columna, así que deshacer el cluster es legal por construcción (sus celdas
+   ocupan los K sitios del bloque). El problema reducido es un diseño
+   ordinario (celdas = clusters, sitios = centros de bloque), por lo que el
+   mismo annealing y legalizador se reutilizan sin cambios. Sólo se agrupan
+   tipos con sitios contiguos en la columna y ≥1000 celdas móviles (CLB en
+   estos benchmarks); RAM, DSP e IO quedan como celdas individuales. Si un
+   diseño no tiene bloques suficientes, K se reduce a la mitad hasta que
+   quepa. Flujo: placement analítico → cada cluster en el bloque libre más
+   cercano al centroide de sus celdas → annealing de clusters → se deshacen
+   → annealing plano frío (T0 = 0.3·σ, ventana 2 %) → refinamiento.
+5. **Simulated annealing** con el esquema adaptativo de VPR: temperatura inicial
    20·σ(ΔHPWL) de movimientos aleatorios; `effort·N^(4/3)` movimientos por
    temperatura; factor de enfriamiento según la tasa de aceptación; ventana de
    movimiento que se ajusta para mantener ≈44 % de aceptación (ensanchada por
@@ -136,10 +234,18 @@ frente a una sola corrida con K veces el esfuerzo.
    restante ÷ temperaturas restantes estimadas (conteo típico medido menos las
    ya hechas). Así el enfriamiento termina cerca del límite aunque la máquina
    sea más lenta o más rápida de lo previsto (p. ej. por otros procesos).
-5. **Refinamiento por medianas** (*optimal region*): cada celda se intenta mover
+6. **Refinamiento por medianas** (*optimal region*): cada celda se intenta mover
    al sitio compatible más cercano a la región mediana de las cajas de sus nets
    (calculadas sin la celda), aceptando sólo mejoras.
-6. **Varias corridas** independientes en hilos; se verifica legalidad y HPWL
+   Opcionalmente (`--window-passes P`, desactivado por defecto) se hace después
+   una **optimización exacta por ventanas**: para cada ventana de R × C sitios
+   de un mismo tipo (3 × 2 por defecto, máx. 8 sitios) se prueban todas las
+   asignaciones de sus celdas a sus sitios (algoritmo de Heap) y se conserva
+   la mejor. Es determinista y respeta el límite de tiempo. En pruebas de una
+   semilla ganó 0.39 % en FPGA01 con esfuerzo 1 (≈ 6 s por pasada) y
+   0.11–0.21 % sobre las salidas v4 de FPGA03/04 (≈ 26–30 s por pasada); no
+   se usó en las salidas entregadas.
+7. **Varias corridas** independientes en hilos; se verifica legalidad y HPWL
    completo de la mejor antes de escribir el archivo. Opcionalmente (`--warm-runs W`),
    W corridas pueden usar un arranque más caliente (T0 = 4·σ, ventana 15 %).
    En el barrido sólo mejoró FPGA04 con esfuerzo 1 (−1.6 %); con esfuerzo 2–4
@@ -156,6 +262,14 @@ frente a una sola corrida con K veces el esfuerzo.
   Surveys*, 1991. (Movimientos a la región óptima / mediana.)
 - M.-C. Kim, D.-J. Lee e I. L. Markov, "SimPL: An Effective Placement
   Algorithm", *ICCAD*, 2010. (Dispersión con anclas.)
+- A. B. Kahng et al., DAC 2024, doi:10.1145/3649329.3655991. (Colocación
+  guiada por clustering.)
+- G. Karypis y V. Kumar, "A Fast and High Quality Multilevel Scheme for
+  Partitioning Irregular Graphs", *SIAM J. Sci. Comput.*, 1998.
+  (*Heavy-edge matching*.)
+- S. Goto, "An Efficient Algorithm for the Two-Dimensional Placement Problem
+  in Electrical Circuit Layout", *IEEE Trans. Circuits and Systems*, 1981.
+  (Región óptima por medianas.)
 - D. Blackman y S. Vigna, generador xoshiro256** (dominio público).
 - E. Carvajal Barboza, *IE0411 – Diseño Físico Parte 2: Posicionamiento* (presentación del curso).
 
@@ -201,13 +315,13 @@ tiempo promedio de una corrida):
 
 | Benchmark (límite) | esfuerzo 1 | esfuerzo 2 | esfuerzo 4 | esfuerzo 8 |
 |---|---|---|---|---|
-| FPGA00 (5 min) | 11 518 (0.3 s) | 10 986 (0.5 s) | 10 716 (1.0 s) | pendiente |
-| FPGA01 (6 min) | 425 237 (45 s) | 407 033 (90 s) | 388 660 (3.0 min) | pendiente |
+| FPGA00 (5 min) | 11 518 (0.3 s) | 10 986 (0.5 s) | 10 716 (1.0 s) | 11 269 (1.9 s) |
+| FPGA01 (6 min) | 425 237 (45 s) | 407 033 (90 s) | 388 660 (3.0 min) | 371 177 (6.1 min) |
 | FPGA02 (15 min) | 757 327 (103 s) | 737 500 (3.4 min) | 719 579 (6.7 min) | 699 296 (14.2 min) |
 | FPGA03 (2 h 30) | 2 939 303 (10.4 min) | 2 902 138 (20.4 min) | 2 874 145 (41 min) | – |
 | FPGA04 (4 h) | 5 495 934 (14.8 min) | 5 338 044 (26.2 min) | 5 333 658 (52 min) | – |
 
-Variación entre semillas (σ/μ): 0.5–1.5 % en FPGA01–04. El tiempo crece casi
+Variación entre semillas (σ/μ): 0.5–2.4 % en FPGA01–04. El tiempo crece casi
 linealmente con el esfuerzo: ≈ 44, 100, 611 y 768 s por unidad de esfuerzo en
 FPGA01–04. FPGA01 y FPGA02 siguen mejorando 2–5 % por cada duplicación del
 esfuerzo; FPGA03 ≈ 1 %; FPGA04 deja de mejorar a partir de esfuerzo 2.
@@ -221,8 +335,10 @@ mientras que en FPGA04 el tibio fue 1.6 % mejor, incluso a igual tiempo. Como
 FPGA03 y FPGA04 tienen la misma utilización, **la hipótesis de que la
 temperatura óptima depende de la utilización quedó descartada**. El barrido
 completo mostró además que la ventaja en FPGA04 sólo existe con esfuerzo 1:
-con esfuerzo 2 y 4 ambos empatan, y en los demás benchmarks el tibio es igual
-o peor (hasta +88 % en FPGA00). Por eso el arranque frío es el de por defecto
+con esfuerzo 2 y 4 ambos empatan. En FPGA01–03 el tibio es peor con esfuerzo
+0.5–2 (hasta +8.7 %) y con esfuerzo 4–8 queda dentro del ruido (−1.4 % a
++0.9 %); en FPGA00 es mucho peor hasta esfuerzo 4 (+19 % a +88 %) y empata
+con esfuerzo 8 (−2.8 %). Por eso el arranque frío es el de por defecto
 y `--warm-runs` (mezclar corridas tibias entre las paralelas) queda desactivado.
 
 **Varias corridas en paralelo.** En los diseños grandes la variación entre
@@ -270,3 +386,62 @@ el evaluador del curso y guarda CSV, placements y logs en `best_comparison/`.
 Requiere Python 3 y el ejecutable `evaluator` en la carpeta de benchmarks.
 La carpeta `experiments/best_state/` contiene los resultados de la comparación
 realizada al introducir este cambio, y un resumen de sus límites.
+**Clustering (annealing en dos niveles).** Comparación contra el flujo plano
+(sin clusters), todas las salidas legales y sin cortes por tiempo. Datos:
+`cluster_*.csv`, `share_default.txt`.
+
+| Prueba | FPGA01 | FPGA02 | FPGA03 | FPGA04 |
+|---|---|---|---|---|
+| Esfuerzo 1 fijo, 3–5 semillas, K = 8 | −6.5 % | −8.6 % | −2.6 % | −2.2 % |
+| Presupuesto de 10 min, 1 hilo, 2 semillas | – | – | −3.8 % | −2.9 % |
+| Configuración por defecto completa (corrida final, semilla 1) | −7.1 % | −4.7 % | −3.6 % | −1.3 % |
+
+- **Tamaño de cluster** (FPGA01/02, esfuerzo 1): K = 2, 4, 8 y 16 mejoran
+  todos; K = 8 fue el mejor o empatado en ambos.
+- **Reparto del tiempo** (`--coarse-share`): con presupuestos cortos importa
+  (FPGA03/04 a 10 min: 0.5 fue ≈ 1 % mejor que 0.8; FPGA01 a 60 s fue al
+  revés); con 30 min en FPGA03/04 las fracciones 0.5, 0.65 y 0.8 quedan dentro
+  del ruido (≤ 0.6 %). Se eligió 0.5, que gana o empata en las configuraciones
+  realistas y deja más tiempo al annealing plano.
+- Una sola corrida de 30 min con clustering (FPGA03 2.80 M, FPGA04 5.22 M) ya
+  supera al flujo plano por defecto (4 corridas, ≈ 100 min: 2.82 M y 5.26 M).
+
+### Resultados finales (configuración por defecto, 6 núcleos)
+
+`scripts/run_benchmarks.sh benchmarks__0411_entrega outputs`, semilla 1,
+4 corridas en paralelo, presupuesto de tiempo por defecto. Todas las salidas
+pasan `integrity` y `legality` del evaluador.
+
+| Benchmark | Objetivo HPWL | Límite | Sin clustering (v4) | Con clustering (v5, por defecto) |
+|---|---|---|---|---|
+| FPGA00 | 52 880 | 5 min | 10 359 (7 s) | **10 359** (7 s; sin clusters, diseño muy pequeño) |
+| FPGA01 | 1 453 168 | 6 min | 369 584 (4.0 min) | **343 305** (3.6 min) |
+| FPGA02 | 2 716 304 | 15 min | 693 350 (9.2 min) | **660 839** (9.2 min) |
+| FPGA03 | 11 528 160 | 2 h 30 | 2 820 491 (100 min) | **2 719 649** (101 min) |
+| FPGA04 | 21 846 668 | 4 h | 5 255 568 (104 min) | **5 186 448** (105 min) |
+
+Las salidas entregadas en `outputs/` son las de la versión con clustering
+(binario congelado `bin/placer-v5`); las de la versión sin clustering quedan en
+`outputs_v4/`. Ninguna corrida llegó al límite de su presupuesto: FPGA01–04 usan entre 44 %
+y 68 % del límite de tiempo de su benchmark (FPGA00, 2 %).
+
+### Máquinas con menos núcleos
+
+Con `bin/placer-v5` y el presupuesto por defecto en FPGA01/02 (datos:
+`threads.csv`). Todas las salidas son legales, ninguna corrida llegó al
+límite y todas terminaron dentro del presupuesto (83–98 %). Los trabajos
+corrieron a la vez en la misma máquina de 6 núcleos (por la competencia por
+memoria, el esfuerzo calibrado es algo menor que en una máquina dedicada).
+
+| Configuración | FPGA01 | FPGA02 |
+|---|---|---|
+| Por defecto, 6 núcleos (v5: 4 corridas, 4 hilos) | 343 305 | 660 839 |
+| 1 núcleo: 1 corrida (lo que el programa elige con 1 núcleo), semillas 1–3 | 345 974 / 365 554 / 357 200 | 665 183 / 660 725 / 666 293 |
+| 4 corridas forzadas en 2 hilos | 348 103 | 670 535 |
+| 4 corridas forzadas en 1 hilo | 366 653 | 679 626 |
+
+Con un solo núcleo el programa hace una sola corrida con todo el
+presupuesto (`--runs` = nº de núcleos, máx. 4). Esa corrida queda cerca del
+promedio por corrida de v5 (FPGA01 352 142, FPGA02 666 297): lo que se pierde
+es sobre todo el "mejor de 4". Forzar 4 corridas en 1 hilo es peor, porque
+cada una recibe un cuarto del tiempo.

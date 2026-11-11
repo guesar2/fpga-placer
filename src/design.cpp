@@ -57,31 +57,7 @@ void Design::load(const std::string& fSitemap, const std::string& fNets, const s
             if (st != "F") movable.push_back(id);
         }
     }
-    // ---- per-type site lists ----------------------------------------------
-    sites.assign(typeNames.size(), TypeSites());
-    for (auto& ts : sites) ts.colOf.assign(W, -1);
-    for (int x = 0; x < W; x++)
-        for (int y = 0; y < H; y++) {
-            int t = siteType[(size_t)x * H + y];
-            if (t < 0) continue;
-            TypeSites& ts = sites[t];
-            if (ts.colOf[x] < 0) {
-                ts.colOf[x] = (int)ts.xs.size();
-                ts.xs.push_back(x);
-                ts.ys.emplace_back();
-            }
-            ts.ys[ts.colOf[x]].push_back(y);
-            ts.count++;
-        }
-    for (auto& ts : sites) {
-        ts.colGap = medianGap(ts.xs);
-        std::vector<int> gaps;
-        for (auto& col : ts.ys) gaps.push_back(medianGap(col));
-        if (!gaps.empty()) {
-            std::nth_element(gaps.begin(), gaps.begin() + gaps.size() / 2, gaps.end());
-            ts.rowGap = gaps[gaps.size() / 2];
-        }
-    }
+    buildSiteIndex();
     // ---- .nets ------------------------------------------------------------
     {
         std::ifstream f(fNets);
@@ -109,7 +85,37 @@ void Design::load(const std::string& fSitemap, const std::string& fNets, const s
             netStart.push_back((int)netPins.size());
         }
     }
-    // ---- cell -> nets (CSR) -------------------------------------------------
+    buildCellNets();
+}
+
+void Design::buildSiteIndex() {
+    sites.assign(typeNames.size(), TypeSites());
+    for (auto& ts : sites) ts.colOf.assign(W, -1);
+    for (int x = 0; x < W; x++)
+        for (int y = 0; y < H; y++) {
+            int t = siteType[(size_t)x * H + y];
+            if (t < 0) continue;
+            TypeSites& ts = sites[t];
+            if (ts.colOf[x] < 0) {
+                ts.colOf[x] = (int)ts.xs.size();
+                ts.xs.push_back(x);
+                ts.ys.emplace_back();
+            }
+            ts.ys[ts.colOf[x]].push_back(y);
+            ts.count++;
+        }
+    for (auto& ts : sites) {
+        ts.colGap = medianGap(ts.xs);
+        std::vector<int> gaps;
+        for (auto& col : ts.ys) gaps.push_back(medianGap(col));
+        if (!gaps.empty()) {
+            std::nth_element(gaps.begin(), gaps.begin() + gaps.size() / 2, gaps.end());
+            ts.rowGap = gaps[gaps.size() / 2];
+        }
+    }
+}
+
+void Design::buildCellNets() {
     cellNetStart.assign(numCells() + 1, 0);
     for (int n = 0; n < numNets(); n++)
         for (int i = netStart[n]; i < netStart[n + 1]; i++) cellNetStart[netPins[i] + 1]++;
