@@ -159,7 +159,9 @@ frente a una sola corrida con K veces el esfuerzo.
 - D. Blackman y S. Vigna, generador xoshiro256** (dominio público).
 - E. Carvajal Barboza, *IE0411 – Diseño Físico Parte 2: Posicionamiento* (presentación del curso).
 
-## Experimentos (máquina de desarrollo, 2 núcleos, 2 corridas en paralelo)
+## Experimentos
+
+### Primeros resultados (máquina de desarrollo, 2 núcleos, 2 corridas en paralelo)
 
 Configuración por defecto (`--time-budget` automático). Todos los resultados
 pasan `integrity` y `legality` del evaluador.
@@ -180,8 +182,59 @@ Observaciones:
   con T0 = 1σ y ventana 5 % da 421.9 k promedio en 46 s contra 437.9 k en 58 s
   del arranque aleatorio (−3.7 % HPWL, −20 % tiempo). Con T0 = 2σ el promedio
   empeoró (≈ 442 k).
-- En FPGA04 (el más denso, 68 % de CLB) un arranque más tibio
-  (`--t0-scale 4 --r0 0.15`) dio 5 481 050, mejor que ambos. La temperatura
-  inicial óptima parece depender de la utilización; falta confirmarlo con más
-  semillas.
 - Variación entre semillas: ≈ ±4 % (FPGA01), σ/μ ≈ 4–6 % (FPGA00).
+
+### Barridos en una máquina de 6 núcleos (i5-9600K)
+
+Cada trabajo es una corrida de un hilo con `--effort` fijo y 5 semillas
+(`scripts/sweep.py`), con 5 trabajos en paralelo; los tiempos incluyen la
+competencia entre procesos por memoria, que los hace ≈ 1.5–2× más lentos que
+una corrida sola. Todos los resultados pasan `integrity` y `legality`. Datos:
+`t0.csv`, `t0_eqtime.csv`, `sweep.csv`; tablas y gráficos con
+`.venv/bin/python scripts/summarize.py sweep.csv`.
+
+Utilización de CLB: FPGA00 0.4 %, FPGA01 14.1 %, FPGA02 21.5 %, FPGA03 66.1 %,
+FPGA04 67.6 % (FPGA03 y FPGA04 tienen además la misma ocupación de RAM, DSP e IO).
+
+**HPWL promedio vs. esfuerzo** (arranque frío, que es el de por defecto;
+tiempo promedio de una corrida):
+
+| Benchmark (límite) | esfuerzo 1 | esfuerzo 2 | esfuerzo 4 | esfuerzo 8 |
+|---|---|---|---|---|
+| FPGA00 (5 min) | 11 518 (0.3 s) | 10 986 (0.5 s) | 10 716 (1.0 s) | pendiente |
+| FPGA01 (6 min) | 425 237 (45 s) | 407 033 (90 s) | 388 660 (3.0 min) | pendiente |
+| FPGA02 (15 min) | 757 327 (103 s) | 737 500 (3.4 min) | 719 579 (6.7 min) | 699 296 (14.2 min) |
+| FPGA03 (2 h 30) | 2 939 303 (10.4 min) | 2 902 138 (20.4 min) | 2 874 145 (41 min) | – |
+| FPGA04 (4 h) | 5 495 934 (14.8 min) | 5 338 044 (26.2 min) | 5 333 658 (52 min) | – |
+
+Variación entre semillas (σ/μ): 0.5–1.5 % en FPGA01–04. El tiempo crece casi
+linealmente con el esfuerzo: ≈ 44, 100, 611 y 768 s por unidad de esfuerzo en
+FPGA01–04. FPGA01 y FPGA02 siguen mejorando 2–5 % por cada duplicación del
+esfuerzo; FPGA03 ≈ 1 %; FPGA04 deja de mejorar a partir de esfuerzo 2.
+
+**Temperatura inicial (arranque frío vs. tibio).** Se probó si los diseños
+densos necesitan un arranque más caliente: frío (T0 = 1σ, ventana 5 %) contra
+tibio (T0 = 4σ, ventana 15 %), caliente (8σ, 30 %) y el arranque aleatorio de
+VPR (`--init given`). Con esfuerzo 1, el frío fue el mejor en FPGA01–03 (el
+tibio fue 4.5–6.4 % peor, estadísticamente significativo con 5 semillas),
+mientras que en FPGA04 el tibio fue 1.6 % mejor, incluso a igual tiempo. Como
+FPGA03 y FPGA04 tienen la misma utilización, **la hipótesis de que la
+temperatura óptima depende de la utilización quedó descartada**. El barrido
+completo mostró además que la ventaja en FPGA04 sólo existe con esfuerzo 1:
+con esfuerzo 2 y 4 ambos empatan, y en los demás benchmarks el tibio es igual
+o peor (hasta +88 % en FPGA00). Por eso el arranque frío es el de por defecto
+y `--warm-runs` (mezclar corridas tibias entre las paralelas) queda desactivado.
+
+**Varias corridas en paralelo.** En los diseños grandes la variación entre
+semillas es pequeña: el mejor de 4 corridas es sólo ≈ 0.5 % mejor que el
+promedio en FPGA03–04. Rinde más dar más esfuerzo a cada corrida que agregar
+corridas.
+
+**Re-planificación del esfuerzo con presupuesto de tiempo.** En esta máquina,
+con 4 hilos, la calibración inicial sobreestimaba la velocidad y todas las
+corridas de FPGA03/04 llegaban al límite antes de terminar el enfriamiento (en
+la máquina de 2 núcleos ocurría lo contrario: usaban sólo 70–80 % del
+presupuesto). Con la re-planificación por temperatura, las corridas terminan
+al ≈ 94 % del presupuesto sin cortar el enfriamiento, con HPWL equivalente
+(FPGA03 2.951 M vs. 2.942 M; FPGA04 5.433 M vs. 5.428 M; diferencia dentro del
+ruido entre semillas).
