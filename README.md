@@ -50,6 +50,8 @@ Ejemplo:
 | `--coarse-effort E` | esfuerzo de la fase de clusters con `--effort` fijo | igual a `--effort` |
 | `--fine-t0 F`, `--fine-r0 F` | arranque del annealing plano después de deshacer los clusters | 0.3, 0.02 |
 | `--fixed-schedule` | con presupuesto de tiempo, mantiene fijos los movimientos por temperatura calibrados (sin re-planificar en cada paso) | re-planificación activa |
+| `--window-passes P` | optimización exacta por ventanas después del refinamiento: P pasadas (ver *Algoritmo*) | 0 (desactivada) |
+| `--window R,C` | ventana de R sitios × C columnas de un mismo tipo (máx. 8 sitios) | 3,2 |
 | `--verbose` | muestra el progreso | – |
 
 Al terminar se imprime en `stdout` una línea
@@ -70,9 +72,14 @@ No hay valores por benchmark; FPGA05 recibe el valor de la misma fórmula.
 | FPGA03 | 45 537 | 107 min | 150 min |
 | FPGA04 | 46 503 | 112 min | 240 min |
 
-La re-planificación del annealing (ver *Algoritmo*) hace que una corrida
-termine al ≈ 94 % de su presupuesto en cualquier máquina; fuera del
-presupuesto sólo quedan unos segundos de lectura y placement analítico.
+El presupuesto se cuenta desde el inicio del programa: la lectura, el
+placement analítico y el clustering consumen parte de él, y fuera del
+presupuesto sólo quedan la verificación final y la escritura del archivo.
+La re-planificación del annealing (ver *Algoritmo*) ajusta el trabajo a la
+velocidad medida; en la corrida final (6 núcleos) FPGA02–04 terminaron al
+93–95 % de su presupuesto y FPGA01 al 83 %, y con 1–2 hilos (FPGA01/02) al
+83–98 %, sin cortes por tiempo (ver *Máquinas con menos núcleos*). Sólo se
+ha medido en esta máquina.
 Gráfico del ajuste: `budget_fit.png`.
 
 ### Reproducibilidad
@@ -87,9 +94,11 @@ compilado con `-march=native`; el `Makefile` ya no usa `-march=native` para que
 el ejecutable funcione en cualquier procesador x86-64 (misma velocidad medida). En modo
 `--time-budget` el esfuerzo se calibra midiendo la velocidad de la máquina y,
 además, los movimientos por temperatura se re-planifican durante la corrida a
-partir de la velocidad medida, por lo que el resultado depende de la máquina;
-el esfuerzo efectivo usado se imprime (`eff.effort ...`) para poder repetir la
-corrida con `--effort`. Si una corrida llega al límite de tiempo antes de terminar el
+partir de la velocidad medida, por lo que el resultado depende de la máquina.
+El esfuerzo calibrado (`effort=` en la línea `RESULT`) y el efectivo de cada
+corrida (`eff.effort ...`) se imprimen; repetir con `--effort` da una corrida
+de esfuerzo parecido pero no idéntica, porque con esfuerzo fijo los
+movimientos por temperatura no se re-planifican. Si una corrida llega al límite de tiempo antes de terminar el
 enfriamiento, se marca como `[deadline hit: not reproducible]`.
 
 ### Scripts
@@ -228,6 +237,14 @@ recocido plano desde la colocación analítica.
 6. **Refinamiento por medianas** (*optimal region*): cada celda se intenta mover
    al sitio compatible más cercano a la región mediana de las cajas de sus nets
    (calculadas sin la celda), aceptando sólo mejoras.
+   Opcionalmente (`--window-passes P`, desactivado por defecto) se hace después
+   una **optimización exacta por ventanas**: para cada ventana de R × C sitios
+   de un mismo tipo (3 × 2 por defecto, máx. 8 sitios) se prueban todas las
+   asignaciones de sus celdas a sus sitios (algoritmo de Heap) y se conserva
+   la mejor. Es determinista y respeta el límite de tiempo. En pruebas de una
+   semilla ganó 0.39 % en FPGA01 con esfuerzo 1 (≈ 6 s por pasada) y
+   0.11–0.21 % sobre las salidas v4 de FPGA03/04 (≈ 26–30 s por pasada); no
+   se usó en las salidas entregadas.
 7. **Varias corridas** independientes en hilos; se verifica legalidad y HPWL
    completo de la mejor antes de escribir el archivo. Opcionalmente (`--warm-runs W`),
    W corridas pueden usar un arranque más caliente (T0 = 4·σ, ventana 15 %).
@@ -304,7 +321,7 @@ tiempo promedio de una corrida):
 | FPGA03 (2 h 30) | 2 939 303 (10.4 min) | 2 902 138 (20.4 min) | 2 874 145 (41 min) | – |
 | FPGA04 (4 h) | 5 495 934 (14.8 min) | 5 338 044 (26.2 min) | 5 333 658 (52 min) | – |
 
-Variación entre semillas (σ/μ): 0.5–1.5 % en FPGA01–04. El tiempo crece casi
+Variación entre semillas (σ/μ): 0.5–2.4 % en FPGA01–04. El tiempo crece casi
 linealmente con el esfuerzo: ≈ 44, 100, 611 y 768 s por unidad de esfuerzo en
 FPGA01–04. FPGA01 y FPGA02 siguen mejorando 2–5 % por cada duplicación del
 esfuerzo; FPGA03 ≈ 1 %; FPGA04 deja de mejorar a partir de esfuerzo 2.
@@ -318,8 +335,10 @@ mientras que en FPGA04 el tibio fue 1.6 % mejor, incluso a igual tiempo. Como
 FPGA03 y FPGA04 tienen la misma utilización, **la hipótesis de que la
 temperatura óptima depende de la utilización quedó descartada**. El barrido
 completo mostró además que la ventaja en FPGA04 sólo existe con esfuerzo 1:
-con esfuerzo 2 y 4 ambos empatan, y en los demás benchmarks el tibio es igual
-o peor (hasta +88 % en FPGA00). Por eso el arranque frío es el de por defecto
+con esfuerzo 2 y 4 ambos empatan. En FPGA01–03 el tibio es peor con esfuerzo
+0.5–2 (hasta +8.7 %) y con esfuerzo 4–8 queda dentro del ruido (−1.4 % a
++0.9 %); en FPGA00 es mucho peor hasta esfuerzo 4 (+19 % a +88 %) y empata
+con esfuerzo 8 (−2.8 %). Por eso el arranque frío es el de por defecto
 y `--warm-runs` (mezclar corridas tibias entre las paralelas) queda desactivado.
 
 **Varias corridas en paralelo.** En los diseños grandes la variación entre
@@ -374,3 +393,24 @@ Las salidas entregadas en `outputs/` son las de la versión con clustering
 (binario congelado `bin/placer-v5`); las de la versión sin clustering quedan en
 `outputs_v4/`. Ninguna corrida llegó al límite de su presupuesto: FPGA01–04 usan entre 44 %
 y 68 % del límite de tiempo de su benchmark (FPGA00, 2 %).
+
+### Máquinas con menos núcleos
+
+Con `bin/placer-v5` y el presupuesto por defecto en FPGA01/02 (datos:
+`threads.csv`). Todas las salidas son legales, ninguna corrida llegó al
+límite y todas terminaron dentro del presupuesto (83–98 %). Los trabajos
+corrieron a la vez en la misma máquina de 6 núcleos (por la competencia por
+memoria, el esfuerzo calibrado es algo menor que en una máquina dedicada).
+
+| Configuración | FPGA01 | FPGA02 |
+|---|---|---|
+| Por defecto, 6 núcleos (v5: 4 corridas, 4 hilos) | 343 305 | 660 839 |
+| 1 núcleo: 1 corrida (lo que el programa elige con 1 núcleo), semillas 1–3 | 345 974 / 365 554 / 357 200 | 665 183 / 660 725 / 666 293 |
+| 4 corridas forzadas en 2 hilos | 348 103 | 670 535 |
+| 4 corridas forzadas en 1 hilo | 366 653 | 679 626 |
+
+Con un solo núcleo el programa hace una sola corrida con todo el
+presupuesto (`--runs` = nº de núcleos, máx. 4). Esa corrida queda cerca del
+promedio por corrida de v5 (FPGA01 352 142, FPGA02 666 297): lo que se pierde
+es sobre todo el "mejor de 4". Forzar 4 corridas en 1 hilo es peor, porque
+cada una recibe un cuarto del tiempo.
