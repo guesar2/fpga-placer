@@ -238,3 +238,35 @@ presupuesto). Con la re-planificación por temperatura, las corridas terminan
 al ≈ 94 % del presupuesto sin cortar el enfriamiento, con HPWL equivalente
 (FPGA03 2.951 M vs. 2.942 M; FPGA04 5.433 M vs. 5.428 M; diferencia dentro del
 ruido entre semillas).
+
+## Conservación del mejor estado del annealing
+
+Con `--keep-best`, esta versión conserva el placement de menor HPWL visitado durante cada búsqueda,
+incluyendo el placement con el que comienza. Al terminar el enfriamiento, recupera
+ese estado antes de la pasada greedy y del refinamiento por medianas.
+
+No cambia las propuestas ni la probabilidad de aceptación del annealing. Lleva
+registro de las celdas modificadas desde el último mínimo, y solo copia esas
+coordenadas cuando aparece un nuevo mínimo. El espacio adicional es O(celdas).
+La restauración reconstruye ocupación y bounding boxes usando `setPositions()`.
+
+La opción es experimental y está desactivada por defecto: activar con `--keep-best`.
+Para usar el comportamiento anterior, omitirla o añadir `--no-keep-best`. Con `--verbose` se informa cuando se restaura un estado.
+
+Importante: comenzar el refinamiento desde un mejor estado no garantiza un mejor
+resultado final que la versión anterior, porque el refinamiento puede seguir otro
+camino. Comparar varias semillas y medir también los tiempos. Esta primera prueba
+usa esfuerzo fijo; no sustituye una comparación posterior con igual tiempo total.
+
+Para reproducir la comparación con cinco semillas por benchmark:
+
+```bash
+make
+python3 tests/compare_best.py --benchmarks /ruta/benchmarks__0411_entrega --effort 0.005
+```
+
+El script ejecuta ambas variantes para FPGA00 a FPGA04, verifica cada salida con
+el evaluador del curso y guarda CSV, placements y logs en `best_comparison/`.
+Requiere Python 3 y el ejecutable `evaluator` en la carpeta de benchmarks.
+La carpeta `experiments/best_state/` contiene los resultados de la comparación
+realizada al introducir este cambio, y un resumen de sus límites.
