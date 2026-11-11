@@ -1,15 +1,15 @@
 [INF] Reading site map file benchmarks__0411_entrega/FPGA02//FPGA02.sitemap
 [INF] Reading placement file benchmarks__0411_entrega/FPGA02//FPGA02.pl
 [INF] Reading net file benchmarks__0411_entrega/FPGA02//FPGA02.nets
-[INF] Reading placement file outputs/FPGA02/new_FPGA02.pl
+[INF] Reading placement file outputs_v5/FPGA02/new_FPGA02.pl
 [INF] Checking placement integrity ...... PASS
 [INF] Checking placement legality ...... PASS
 [INF] ===================================
 [INF]                HPWL                
 [INF] ===================================
 [INF] Ref. Placement:  19264983
-[INF] Test Placement:  693350
-[INF] Diff:            -0.96%
+[INF] Test Placement:  660839
+[INF] Diff:            -0.97%
 [INF] ===================================
 [INF] ===================================
 [INF]               ABU10                

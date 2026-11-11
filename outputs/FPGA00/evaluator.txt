@@ -1,7 +1,7 @@
 [INF] Reading site map file benchmarks__0411_entrega/FPGA00//FPGA00.sitemap
 [INF] Reading placement file benchmarks__0411_entrega/FPGA00//FPGA00.pl
 [INF] Reading net file benchmarks__0411_entrega/FPGA00//FPGA00.nets
-[INF] Reading placement file outputs/FPGA00/new_FPGA00.pl
+[INF] Reading placement file outputs_v5/FPGA00/new_FPGA00.pl
 [INF] Checking placement integrity ...... PASS
 [INF] Checking placement legality ...... PASS
 [INF] ===================================

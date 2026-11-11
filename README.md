@@ -78,7 +78,13 @@ Gráfico del ajuste: `budget_fit.png`.
 ### Reproducibilidad
 
 Con `--effort` fijo, la misma combinación de `--seed`, `--runs` y `--effort`
-produce exactamente el mismo placement en cualquier máquina. En modo
+produce exactamente el mismo placement con el mismo ejecutable, en cualquier
+máquina. Otro compilador u otras opciones de compilación pueden cambiar el
+redondeo de punto flotante del placement analítico inicial y, con él, el
+resultado final (en las pruebas sólo cambió FPGA00, dentro de la variación
+entre semillas). Las salidas de `outputs/` se generaron con `bin/placer-v5`,
+compilado con `-march=native`; el `Makefile` ya no usa `-march=native` para que
+el ejecutable funcione en cualquier procesador x86-64 (misma velocidad medida). En modo
 `--time-budget` el esfuerzo se calibra midiendo la velocidad de la máquina y,
 además, los movimientos por temperatura se re-planifican durante la corrida a
 partir de la velocidad medida, por lo que el resultado depende de la máquina;
@@ -127,6 +133,43 @@ procesos, use `--parallel 1`. Si el CSV tiene varias configuraciones, también
 compara cada una contra la de referencia (`--ref`, por defecto `cold`) con el
 estadístico t de Welch, y estima el HPWL esperado del mejor de K corridas
 frente a una sola corrida con K veces el esfuerzo.
+
+## Estructura del código
+
+Dependencias entre módulos (cada uno usa los de su izquierda):
+`design` → `placement` → `optimize` / `analytic` → `cluster` → `main`.
+
+| Archivo (`src/`) | Descripción | Usa |
+|---|---|---|
+| `design.{hpp,cpp}` | Lectura de `.sitemap`, `.nets` y `.pl`; ids enteros, listas red→celdas y celda→redes, índice de sitios por tipo. | — |
+| `placement.{hpp,cpp}` | Estado de la colocación: posiciones, ocupación de sitios, cajas de cada red con conteo de bordes, HPWL incremental (`evaluate`/`commit`), verificación de legalidad. | `design` |
+| `optimize.{hpp,cpp}` | RNG con semilla, recocido simulado tipo VPR, refinamiento greedy por medianas, medición de la tasa de movimientos. | `placement` |
+| `analytic.{hpp,cpp}` | Colocación inicial cuadrática (gradiente conjugado), dispersión por anclas y legalizador. | `placement` |
+| `cluster.{hpp,cpp}` | Agrupamiento de celdas (heavy-edge) en bloques verticales, problema grueso y desagrupamiento legal. | `design`, `optimize`, `analytic` |
+| `main.cpp` | CLI y flujo completo: carga → analítico → agrupamiento → recocidos en paralelo → refinamiento → verificación → escritura. | todos |
+
+### Flujo de ejecución
+
+```mermaid
+flowchart TD
+    A["Lectura de .sitemap / .nets / .pl<br/>(design)"] --> B["Colocación cuadrática + dispersión por anclas<br/>+ legalización (analytic)"]
+    B --> C["Calibración del esfuerzo según el<br/>presupuesto de tiempo (main)"]
+    C --> D{"¿Agrupamiento aplicable?<br/>(--cluster K, tipos con muchas celdas)"}
+    D -- sí --> E["Construir clústeres heavy-edge<br/>(cluster, compartido por todas las corridas)"]
+    D -- no --> G
+    E --> F
+    subgraph R["K corridas en paralelo, semillas S, S+1, … (main + optimize)"]
+        F["Recocido del problema grueso"] --> F2["Desagrupar (legal por construcción)"]
+        F2 --> G["Recocido plano<br/>(frío: --fine-t0 / --fine-r0)"]
+        G --> H["Refinamiento greedy por medianas"]
+    end
+    H --> I["Elegir la mejor corrida"]
+    I --> J["Verificar legalidad y recalcular HPWL<br/>(placement)"]
+    J --> K["Escribir new_*.pl y línea RESULT"]
+```
+
+Sin agrupamiento (o con `--cluster 0`), cada corrida empieza directamente en el
+recocido plano desde la colocación analítica.
 
 ## Algoritmo
 
@@ -301,7 +344,7 @@ ruido entre semillas).
 |---|---|---|---|---|
 | Esfuerzo 1 fijo, 3–5 semillas, K = 8 | −6.5 % | −8.6 % | −2.6 % | −2.2 % |
 | Presupuesto de 10 min, 1 hilo, 2 semillas | – | – | −3.8 % | −2.9 % |
-| Configuración por defecto completa (semilla 1) | −7.5 % | −4.4 % | ver tabla final | ver tabla final |
+| Configuración por defecto completa (corrida final, semilla 1) | −7.1 % | −4.7 % | −3.6 % | −1.3 % |
 
 - **Tamaño de cluster** (FPGA01/02, esfuerzo 1): K = 2, 4, 8 y 16 mejoran
   todos; K = 8 fue el mejor o empatado en ambos.
@@ -321,8 +364,13 @@ pasan `integrity` y `legality` del evaluador.
 
 | Benchmark | Objetivo HPWL | Límite | Sin clustering (v4) | Con clustering (v5, por defecto) |
 |---|---|---|---|---|
-| FPGA00 | 52 880 | 5 min | 10 359 (7 s) | _pendiente_ |
-| FPGA01 | 1 453 168 | 6 min | 369 584 (4.0 min) | _pendiente_ |
-| FPGA02 | 2 716 304 | 15 min | 693 350 (9.2 min) | _pendiente_ |
-| FPGA03 | 11 528 160 | 2 h 30 | 2 820 491 (100 min) | _pendiente_ |
-| FPGA04 | 21 846 668 | 4 h | 5 255 568 (104 min) | _pendiente_ |
+| FPGA00 | 52 880 | 5 min | 10 359 (7 s) | **10 359** (7 s; sin clusters, diseño muy pequeño) |
+| FPGA01 | 1 453 168 | 6 min | 369 584 (4.0 min) | **343 305** (3.6 min) |
+| FPGA02 | 2 716 304 | 15 min | 693 350 (9.2 min) | **660 839** (9.2 min) |
+| FPGA03 | 11 528 160 | 2 h 30 | 2 820 491 (100 min) | **2 719 649** (101 min) |
+| FPGA04 | 21 846 668 | 4 h | 5 255 568 (104 min) | **5 186 448** (105 min) |
+
+Las salidas entregadas en `outputs/` son las de la versión con clustering
+(binario congelado `bin/placer-v5`); las de la versión sin clustering quedan en
+`outputs_v4/`. Ninguna corrida llegó al límite de su presupuesto: FPGA01–04 usan entre 44 %
+y 68 % del límite de tiempo de su benchmark (FPGA00, 2 %).

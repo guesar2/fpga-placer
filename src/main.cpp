@@ -70,6 +70,8 @@ static void usage() {
                  "  --r0 F           initial move window as fraction of grid (default: 1 given, see README for qp)\n"
                  "  --warm-runs W    with --init qp, the last W runs use a warmer start (t0-scale %g, r0 %g)\n"
                  "                   (default 0; ignored if --t0-scale or --r0 is given)\n"
+                 "  --window-passes P  exact window optimization after refinement: P passes (default 0 = off)\n"
+                 "  --window R,C     window = R sites x C columns of one type (default 3,2; at most 8 sites)\n"
                  "  --cluster K      clustering-driven flow: anneal clusters of up to K cells first,\n"
                  "                   then uncluster and finish with a cold flat anneal (default 8; 0 = off)\n"
                  "  --coarse-effort E  effort of the clustered anneal (default: same as --effort)\n"
@@ -84,7 +86,7 @@ struct RunResult {
     long long cost = -1;
     std::vector<int> x, y;
     AnnealStats st;
-    long long refineGain = 0;
+    long long refineGain = 0, windowGain = 0;
     unsigned seed = 0;
 };
 
@@ -100,6 +102,7 @@ int main(int argc, char** argv) {
     double t0Scale = -1, r0 = -1;
     int warmRuns = 0;
     int clusterK = 8;
+    int windowPasses = 0, windowRows = 3, windowCols = 2;
     double coarseEffort = -1, coarseShare = 0.5, fineT0 = 0.3, fineR0 = 0.02;
     AnalyticOptions ao;
     for (int i = 5; i < argc; i++) {
@@ -124,6 +127,8 @@ int main(int argc, char** argv) {
         else if (a == "--coarse-share") coarseShare = std::atof(val());
         else if (a == "--fine-t0") fineT0 = std::atof(val());
         else if (a == "--fine-r0") fineR0 = std::atof(val());
+        else if (a == "--window-passes") windowPasses = std::atoi(val());
+        else if (a == "--window") { const char* v = val(); if (std::sscanf(v, "%d,%d", &windowRows, &windowCols) != 2) { usage(); return 2; } }
         else if (a == "--qp-iters") ao.iterations = std::atoi(val());
         else if (a == "--qp-growth") ao.anchorGrowth = std::atof(val());
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); usage(); return 1; }
@@ -259,11 +264,12 @@ int main(int argc, char** argv) {
                 res.st = anneal(P, rng, opt);
                 opt.deadline = batchEnd;
                 res.refineGain = refine(P, rng, opt, 20);
+                if (windowPasses > 0) res.windowGain = windowOpt(P, opt, windowRows, windowCols, windowPasses);
                 res.cost = P.cost;
                 res.x = P.x;
                 res.y = P.y;
-                std::fprintf(stderr, "run %d%s (seed %u): HPWL %lld  temps %d  moves %lld  eff.effort %.3f  refine -%lld%s  t=%.1fs\n",
-                             r, warm ? " warm" : "", res.seed, res.cost, res.st.temperatures, res.st.moves, res.st.effectiveEffort, res.refineGain,
+                std::fprintf(stderr, "run %d%s (seed %u): HPWL %lld  temps %d  moves %lld  eff.effort %.3f  refine -%lld  window -%lld%s  t=%.1fs\n",
+                             r, warm ? " warm" : "", res.seed, res.cost, res.st.temperatures, res.st.moves, res.st.effectiveEffort, res.refineGain, res.windowGain,
                              res.st.hitDeadline ? "  [deadline hit: not reproducible]" : "",
                              secondsSince(start));
             });

@@ -216,3 +216,91 @@ long long refine(Placement& P, Rng& rng, const AnnealOptions& opt, int maxPasses
     }
     return before - P.cost;
 }
+
+// Exact window optimization (detailed placement). A window is up to
+// rows x cols sites of one type: `cols` neighbouring columns of that type and
+// `rows` consecutive sites of that type in each column. All arrangements of
+// the window's cells over its sites (empty sites included) are enumerated with
+// Heap's algorithm, one swap per step, so each step is a single incremental
+// evaluate()+commit(). The best arrangement is then restored. Sites holding
+// fixed cells are left out. The scan order is deterministic (no RNG).
+long long windowOpt(Placement& P, const AnnealOptions& opt, int rows, int cols, int maxPasses,
+                    WindowStats* stats) {
+    const Design& D = P.D;
+    const long long before = P.cost;
+    const int T = (int)D.typeNames.size();
+    std::vector<int> movableOfType(T, 0);
+    for (int c : D.movable) movableOfType[D.cellType[c]]++;
+    std::vector<int> sx, sy, content, bestContent, ctr;
+    long long windows = 0;
+    const int kWindowMaxSites = 8;  // 8! = 40320 arrangements per window at most
+    for (int pass = 0; pass < maxPasses; pass++) {
+        const long long passStart = P.cost;
+        for (int t = 0; t < T; t++) {
+            if (movableOfType[t] == 0) continue;
+            const TypeSites& ts = D.sites[t];
+            const int ncol = (int)ts.xs.size();
+            for (int ci = 0; ci < ncol; ci++) {
+                const std::vector<int>& base = ts.ys[ci];
+                for (size_t j = 0; j < base.size(); j++) {
+                    if ((windows & 255) == 0 && secondsSince(opt.start) > opt.deadline) goto done;
+                    const int ylo = base[j], yhi = base[std::min(base.size() - 1, j + rows - 1)];
+                    sx.clear(); sy.clear(); content.clear();
+                    int ncells = 0;
+                    for (int c = ci; c < std::min(ncol, ci + cols); c++) {
+                        const std::vector<int>& col = ts.ys[c];
+                        for (auto it = std::lower_bound(col.begin(), col.end(), ylo); it != col.end() && *it <= yhi; ++it) {
+                            const int o = P.occ[P.site(ts.xs[c], *it)];
+                            if (o >= 0 && D.cellFixed[o]) continue;
+                            if ((int)content.size() >= kWindowMaxSites) break;
+                            sx.push_back(ts.xs[c]); sy.push_back(*it); content.push_back(o);
+                            ncells += o >= 0;
+                        }
+                    }
+                    const int n = (int)content.size();
+                    if (ncells == 0 || n < 2) continue;
+                    windows++;
+                    // Heap's algorithm (iterative): visits all n! orderings of `content`.
+                    bestContent = content;
+                    long long cur = 0, best = 0;
+                    ctr.assign(n, 0);
+                    int i = 1;
+                    while (i < n) {
+                        if (ctr[i] < i) {
+                            const int a = (i & 1) ? ctr[i] : 0, b = i;
+                            if (content[a] >= 0 || content[b] >= 0) {
+                                if (content[a] >= 0) cur += P.evaluate(content[a], sx[b], sy[b]);
+                                else cur += P.evaluate(content[b], sx[a], sy[a]);
+                                P.commit();
+                                std::swap(content[a], content[b]);
+                                if (cur < best) best = cur, bestContent = content;
+                            }
+                            ctr[i]++;
+                            i = 1;
+                        } else {
+                            ctr[i] = 0;
+                            i++;
+                        }
+                    }
+                    // Restore the best arrangement: put each cell on its slot.
+                    for (int s = 0; s < n; s++) {
+                        const int want = bestContent[s];
+                        if (want < 0 || content[s] == want) continue;
+                        const int from = (int)(std::find(content.begin(), content.end(), want) - content.begin());
+                        P.evaluate(want, sx[s], sy[s]);
+                        P.commit();
+                        std::swap(content[s], content[from]);
+                    }
+                }
+            }
+        }
+        if (opt.verbose)
+            std::fprintf(stderr, "[run %d] window pass %d: hpwl=%lld (-%lld)  windows %lld  t=%.1fs\n", opt.runId,
+                         pass + 1, P.cost, passStart - P.cost, windows, secondsSince(opt.start));
+        if (stats) stats->passes = pass + 1;
+        if (passStart - P.cost <= passStart / 100000) break;  // < 0.001% gain
+    }
+done:
+    if (stats) stats->windows = windows;
+    return before - P.cost;
+}

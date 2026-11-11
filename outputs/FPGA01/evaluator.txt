@@ -1,14 +1,14 @@
 [INF] Reading site map file benchmarks__0411_entrega/FPGA01//FPGA01.sitemap
 [INF] Reading placement file benchmarks__0411_entrega/FPGA01//FPGA01.pl
 [INF] Reading net file benchmarks__0411_entrega/FPGA01//FPGA01.nets
-[INF] Reading placement file outputs/FPGA01/new_FPGA01.pl
+[INF] Reading placement file outputs_v5/FPGA01/new_FPGA01.pl
 [INF] Checking placement integrity ...... PASS
 [INF] Checking placement legality ...... PASS
 [INF] ===================================
 [INF]                HPWL                
 [INF] ===================================
 [INF] Ref. Placement:  12649411
-[INF] Test Placement:  369584
+[INF] Test Placement:  343305
 [INF] Diff:            -0.97%
 [INF] ===================================
 [INF] ===================================
@@ -20,5 +20,5 @@
 [INF] -----------------------------------
 [INF] Test Placement
 [INF]     6 X 6:     1.000
-[INF]     12 x 12:   1.000
+[INF]     12 x 12:   0.999
 [INF] ===================================

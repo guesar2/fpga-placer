@@ -1,1 +1,1 @@
-RESULT hpwl=5255568 best_seed=3 mean_hpwl=5299218 runs=4 effort=7.6521 time=6238.71s
+RESULT hpwl=5186448 best_seed=1 mean_hpwl=5212126 runs=4 effort=10.0749 time=6303.85s
