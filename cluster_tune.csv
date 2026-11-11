@@ -1,0 +1,21 @@
+benchmark,config,effort,seed,hpwl,time_s,temps,legal,args,host,parallel
+FPGA01,clu2,1.0,1,407450,60.89,106,PASS,--cluster 2,localhost.localdomain,2
+FPGA01,clu2,1.0,2,397684,61.81,105,PASS,--cluster 2,localhost.localdomain,2
+FPGA01,clu2,1.0,3,398519,60.80,105,PASS,--cluster 2,localhost.localdomain,2
+FPGA01,clu2,1.0,4,409202,61.04,106,PASS,--cluster 2,localhost.localdomain,2
+FPGA01,clu8,1.0,1,401671,42.78,97,PASS,--cluster 8,localhost.localdomain,2
+FPGA01,clu2,1.0,5,406111,60.85,105,PASS,--cluster 2,localhost.localdomain,2
+FPGA01,clu8,1.0,2,401142,42.27,98,PASS,--cluster 8,localhost.localdomain,2
+FPGA01,clu8,1.0,3,399272,41.85,98,PASS,--cluster 8,localhost.localdomain,2
+FPGA01,clu8,1.0,4,395739,43.08,98,PASS,--cluster 8,localhost.localdomain,2
+FPGA01,clu8,1.0,5,390055,42.27,98,PASS,--cluster 8,localhost.localdomain,2
+FPGA01,clu4t01,1.0,1,402782,35.72,100,PASS,--cluster 4 --fine-t0 0.1,localhost.localdomain,2
+FPGA01,clu4t01,1.0,2,403598,35.51,100,PASS,--cluster 4 --fine-t0 0.1,localhost.localdomain,2
+FPGA01,clu4t01,1.0,3,419308,35.93,100,PASS,--cluster 4 --fine-t0 0.1,localhost.localdomain,2
+FPGA01,clu4t01,1.0,4,411652,35.98,101,PASS,--cluster 4 --fine-t0 0.1,localhost.localdomain,2
+FPGA01,clu4t01,1.0,5,414509,35.36,100,PASS,--cluster 4 --fine-t0 0.1,localhost.localdomain,2
+FPGA01,clu4t1,1.0,1,419348,64.64,100,PASS,--cluster 4 --fine-t0 1 --fine-r0 0.05,localhost.localdomain,2
+FPGA01,clu4t1,1.0,2,416463,65.86,100,PASS,--cluster 4 --fine-t0 1 --fine-r0 0.05,localhost.localdomain,2
+FPGA01,clu4t1,1.0,3,431324,66.01,100,PASS,--cluster 4 --fine-t0 1 --fine-r0 0.05,localhost.localdomain,2
+FPGA01,clu4t1,1.0,4,438159,66.73,101,PASS,--cluster 4 --fine-t0 1 --fine-r0 0.05,localhost.localdomain,2
+FPGA01,clu4t1,1.0,5,416266,62.26,100,PASS,--cluster 4 --fine-t0 1 --fine-r0 0.05,localhost.localdomain,2

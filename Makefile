@@ -2,7 +2,7 @@ CXX      ?= g++
 CXXFLAGS ?= -O3 -march=native -std=c++17 -Wall -Wextra
 LDFLAGS  ?= -pthread
 
-SRC := src/main.cpp src/design.cpp src/placement.cpp src/optimize.cpp src/analytic.cpp
+SRC := src/main.cpp src/design.cpp src/placement.cpp src/optimize.cpp src/analytic.cpp src/cluster.cpp
 HDR := $(wildcard src/*.hpp)
 
 placer: $(SRC) $(HDR)

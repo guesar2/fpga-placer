@@ -199,3 +199,33 @@ FPGA00,warm,0.5,5,21725,0.18,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdoma
 FPGA01,warm,0.5,3,492331,27.33,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
 FPGA01,warm,0.5,4,450400,27.53,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
 FPGA01,warm,0.5,5,445787,26.48,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,8.0,2,696848,851.49,118,PASS,,localhost.localdomain,5
+FPGA02,cold,8.0,4,704508,852.80,118,PASS,,localhost.localdomain,5
+FPGA02,cold,8.0,5,696043,853.00,118,PASS,,localhost.localdomain,5
+FPGA02,cold,8.0,1,703379,855.01,118,PASS,,localhost.localdomain,5
+FPGA02,cold,8.0,3,695701,859.33,119,PASS,,localhost.localdomain,5
+FPGA02,warm,8.0,2,702733,1000.65,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,8.0,5,685628,1010.84,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,8.0,1,699121,1029.47,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,8.0,3,720877,1035.52,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,8.0,4,693859,1051.17,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,8.0,1,358005,365.25,111,PASS,,localhost.localdomain,5
+FPGA01,cold,8.0,2,370908,369.67,111,PASS,,localhost.localdomain,5
+FPGA01,cold,8.0,3,370715,367.33,111,PASS,,localhost.localdomain,5
+FPGA01,cold,8.0,4,382368,371.83,112,PASS,,localhost.localdomain,5
+FPGA01,cold,8.0,5,373890,365.23,111,PASS,,localhost.localdomain,5
+FPGA01,warm,8.0,1,371828,479.46,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,8.0,1,11794,1.91,114,PASS,,localhost.localdomain,5
+FPGA00,cold,8.0,2,11754,1.93,115,PASS,,localhost.localdomain,5
+FPGA00,cold,8.0,3,10395,1.88,114,PASS,,localhost.localdomain,5
+FPGA00,cold,8.0,4,10612,1.84,114,PASS,,localhost.localdomain,5
+FPGA00,cold,8.0,5,11790,1.84,115,PASS,,localhost.localdomain,5
+FPGA00,warm,8.0,1,10697,2.39,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,8.0,2,372994,471.42,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,8.0,2,12200,2.29,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,8.0,3,10714,2.30,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,8.0,4,10551,2.32,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,8.0,5,10620,2.32,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,8.0,3,384152,473.21,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,8.0,4,364940,466.69,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,8.0,5,359343,459.36,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
