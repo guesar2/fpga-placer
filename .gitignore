@@ -1,0 +1,25 @@
+# Build products (rebuild with `make`)
+/placer
+*.o
+# Frozen binaries used by the sweeps (machine-specific, -march=native)
+/bin/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Course benchmarks and evaluator (distributed by the course, ~35 MB)
+benchmarks*/
+
+# Sweep scratch: temporary .pl files and logs (results live in the CSVs)
+.sweep_tmp/
+*_pl/
+*.log
+
+# Archives and OS / editor clutter
+*.zip
+.DS_Store
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,201 @@
+benchmark,config,effort,seed,hpwl,time_s,temps,legal,args,host,parallel
+FPGA04,cold,1.0,3,5477170,883.94,116,PASS,,localhost.localdomain,5
+FPGA04,cold,1.0,2,5499339,884.90,117,PASS,,localhost.localdomain,5
+FPGA04,cold,1.0,5,5515411,886.42,116,PASS,,localhost.localdomain,5
+FPGA04,cold,1.0,4,5458453,889.41,116,PASS,,localhost.localdomain,5
+FPGA04,cold,1.0,1,5529298,894.14,117,PASS,,localhost.localdomain,5
+FPGA04,warm,1.0,3,5392636,1066.19,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,1.0,2,5388210,1070.18,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,1.0,5,5385742,1061.33,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,1.0,4,5462460,1066.25,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,1.0,1,5411172,1074.93,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,cold,1.0,1,2910257,626.66,120,PASS,,localhost.localdomain,5
+FPGA03,cold,1.0,2,2945955,627.19,119,PASS,,localhost.localdomain,5
+FPGA03,cold,1.0,3,2938598,625.10,119,PASS,,localhost.localdomain,5
+FPGA03,cold,1.0,4,2959245,619.73,119,PASS,,localhost.localdomain,5
+FPGA03,cold,1.0,5,2942458,621.42,119,PASS,,localhost.localdomain,5
+FPGA03,warm,1.0,3,3221513,815.26,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,1.0,2,3025268,823.87,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,1.0,1,3080961,829.50,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,1.0,4,3077929,821.10,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,1.0,5,3135760,817.24,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,1.0,1,756244,101.71,119,PASS,,localhost.localdomain,5
+FPGA02,cold,1.0,2,753643,102.75,119,PASS,,localhost.localdomain,5
+FPGA02,cold,1.0,3,750265,104.61,120,PASS,,localhost.localdomain,5
+FPGA02,cold,1.0,4,759717,103.71,119,PASS,,localhost.localdomain,5
+FPGA02,cold,1.0,5,766764,102.79,119,PASS,,localhost.localdomain,5
+FPGA02,warm,1.0,1,823675,129.24,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,1.0,2,786093,130.79,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,1.0,3,806136,128.83,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,1.0,4,774382,129.49,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,1.0,5,837524,130.29,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,1.0,1,427005,44.74,112,PASS,,localhost.localdomain,5
+FPGA01,cold,1.0,2,417198,45.15,112,PASS,,localhost.localdomain,5
+FPGA01,cold,1.0,3,421627,45.74,112,PASS,,localhost.localdomain,5
+FPGA01,cold,1.0,4,434331,44.69,112,PASS,,localhost.localdomain,5
+FPGA01,cold,1.0,5,426026,45.00,111,PASS,,localhost.localdomain,5
+FPGA01,warm,1.0,1,432349,56.88,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,1.0,2,470014,57.31,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,1.0,3,431189,57.76,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,1.0,4,453190,57.34,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,1.0,5,434842,57.37,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,cold,4.0,3,5357763,3121.34,116,PASS,,localhost.localdomain,5
+FPGA04,cold,4.0,4,5357755,3121.85,116,PASS,,localhost.localdomain,5
+FPGA04,cold,4.0,1,5349625,3132.49,117,PASS,,localhost.localdomain,5
+FPGA04,cold,4.0,2,5286750,3134.44,116,PASS,,localhost.localdomain,5
+FPGA04,cold,4.0,5,5316395,3150.40,116,PASS,,localhost.localdomain,5
+FPGA04,warm,4.0,1,5450141,4108.75,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,4.0,3,5299743,4109.85,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,4.0,4,5315022,4111.32,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,4.0,2,5278071,4145.07,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,4.0,5,5323983,4131.53,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,cold,4.0,3,2876654,2445.77,119,PASS,,localhost.localdomain,5
+FPGA03,cold,4.0,1,2930665,2467.60,119,PASS,,localhost.localdomain,5
+FPGA03,cold,4.0,2,2903590,2473.92,119,PASS,,localhost.localdomain,5
+FPGA03,cold,4.0,4,2837443,2451.73,119,PASS,,localhost.localdomain,5
+FPGA03,cold,4.0,5,2822375,2453.30,119,PASS,,localhost.localdomain,5
+FPGA03,warm,4.0,1,2915735,3036.30,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,4.0,2,2859409,3045.61,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,4.0,3,2869573,3037.42,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,4.0,4,2936704,3058.62,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,4.0,5,2925029,3070.92,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,cold,2.0,3,5361691,1546.17,116,PASS,,localhost.localdomain,5
+FPGA04,cold,2.0,2,5300122,1567.38,116,PASS,,localhost.localdomain,5
+FPGA04,cold,2.0,1,5317648,1585.67,117,PASS,,localhost.localdomain,5
+FPGA04,cold,2.0,4,5330147,1571.20,116,PASS,,localhost.localdomain,5
+FPGA04,cold,2.0,5,5380612,1587.30,116,PASS,,localhost.localdomain,5
+FPGA04,warm,2.0,1,5344345,2100.29,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,2.0,2,5310822,2108.19,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,2.0,3,5355937,2130.40,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,2.0,4,5393900,2096.77,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,2.0,5,5372270,2110.35,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,cold,2.0,1,2921876,1230.71,120,PASS,,localhost.localdomain,5
+FPGA03,cold,2.0,2,2880191,1216.53,119,PASS,,localhost.localdomain,5
+FPGA03,cold,2.0,3,2899232,1218.13,119,PASS,,localhost.localdomain,5
+FPGA03,cold,2.0,4,2920597,1234.77,119,PASS,,localhost.localdomain,5
+FPGA03,cold,2.0,5,2888795,1218.69,119,PASS,,localhost.localdomain,5
+FPGA03,warm,2.0,1,2943620,1540.48,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,2.0,2,2940976,1551.14,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,2.0,4,2965221,1543.22,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,2.0,3,2988186,1563.30,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,2.0,5,2909812,1542.39,149,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,cold,0.5,1,5597245,403.35,117,PASS,,localhost.localdomain,5
+FPGA04,cold,0.5,2,5562205,406.92,117,PASS,,localhost.localdomain,5
+FPGA04,cold,0.5,3,5576809,408.95,117,PASS,,localhost.localdomain,5
+FPGA04,cold,0.5,4,5521123,411.95,117,PASS,,localhost.localdomain,5
+FPGA04,cold,0.5,5,5494740,401.80,116,PASS,,localhost.localdomain,5
+FPGA04,warm,0.5,1,5533025,543.95,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,0.5,2,5519783,541.82,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,0.5,3,5508552,538.61,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,0.5,4,5554297,535.81,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA04,warm,0.5,5,5491394,533.98,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,4.0,1,722669,402.14,118,PASS,,localhost.localdomain,5
+FPGA02,cold,4.0,2,721675,404.56,118,PASS,,localhost.localdomain,5
+FPGA02,cold,4.0,4,715237,401.02,118,PASS,,localhost.localdomain,5
+FPGA02,cold,4.0,3,711585,406.50,119,PASS,,localhost.localdomain,5
+FPGA02,cold,4.0,5,726729,404.73,119,PASS,,localhost.localdomain,5
+FPGA02,warm,4.0,1,717510,507.77,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,4.0,2,726987,520.42,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,4.0,4,718451,507.36,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,4.0,3,704320,511.07,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,4.0,5,715420,509.85,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,cold,0.5,1,2995104,320.46,120,PASS,,localhost.localdomain,5
+FPGA03,cold,0.5,2,3031595,319.85,121,PASS,,localhost.localdomain,5
+FPGA03,cold,0.5,4,2998999,319.96,120,PASS,,localhost.localdomain,5
+FPGA03,cold,0.5,3,3012275,320.92,120,PASS,,localhost.localdomain,5
+FPGA03,cold,0.5,5,3035973,322.16,121,PASS,,localhost.localdomain,5
+FPGA03,warm,0.5,1,3332111,418.91,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,0.5,2,3199540,417.63,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,0.5,4,3373002,415.18,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,0.5,3,3247119,422.61,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA03,warm,0.5,5,3238191,414.10,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,2.0,1,737393,204.84,119,PASS,,localhost.localdomain,5
+FPGA02,cold,2.0,2,729442,205.13,119,PASS,,localhost.localdomain,5
+FPGA02,cold,2.0,3,729853,204.14,119,PASS,,localhost.localdomain,5
+FPGA02,cold,2.0,4,741935,203.28,119,PASS,,localhost.localdomain,5
+FPGA02,cold,2.0,5,748876,202.01,118,PASS,,localhost.localdomain,5
+FPGA02,warm,2.0,1,756248,257.55,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,2.0,2,764300,254.59,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,2.0,3,753916,255.14,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,2.0,4,730406,258.39,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,2.0,5,753467,253.58,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,4.0,1,382976,177.69,112,PASS,,localhost.localdomain,5
+FPGA01,cold,4.0,2,383725,181.24,112,PASS,,localhost.localdomain,5
+FPGA01,cold,4.0,3,391334,176.81,111,PASS,,localhost.localdomain,5
+FPGA01,cold,4.0,4,398981,178.54,112,PASS,,localhost.localdomain,5
+FPGA01,cold,4.0,5,386286,178.61,112,PASS,,localhost.localdomain,5
+FPGA01,warm,4.0,1,383056,224.81,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,4.0,2,393453,225.33,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,4.0,3,383069,226.98,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,4.0,4,375410,225.12,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,4.0,5,380686,225.38,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,2.0,1,414445,89.00,112,PASS,,localhost.localdomain,5
+FPGA01,cold,2.0,2,404299,88.41,112,PASS,,localhost.localdomain,5
+FPGA01,cold,2.0,3,404980,89.82,112,PASS,,localhost.localdomain,5
+FPGA01,cold,2.0,4,410457,89.96,112,PASS,,localhost.localdomain,5
+FPGA01,cold,2.0,5,400986,90.63,112,PASS,,localhost.localdomain,5
+FPGA01,warm,2.0,1,424772,113.21,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,2.0,2,431606,113.75,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,2.0,3,421929,113.76,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,0.5,1,776708,52.68,120,PASS,,localhost.localdomain,5
+FPGA01,warm,2.0,4,408165,114.47,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,2.0,5,416499,114.82,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,cold,0.5,2,759892,52.57,119,PASS,,localhost.localdomain,5
+FPGA02,cold,0.5,3,774764,54.21,120,PASS,,localhost.localdomain,5
+FPGA02,cold,0.5,4,758340,54.26,120,PASS,,localhost.localdomain,5
+FPGA02,cold,0.5,5,761925,55.16,120,PASS,,localhost.localdomain,5
+FPGA02,warm,0.5,1,851757,66.92,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,0.5,2,794176,66.22,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA02,warm,0.5,3,854135,65.46,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,0.5,1,464354,24.04,113,PASS,,localhost.localdomain,5
+FPGA02,warm,0.5,4,812898,65.82,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,0.5,2,471593,23.86,112,PASS,,localhost.localdomain,5
+FPGA02,warm,0.5,5,798361,66.81,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,cold,0.5,3,448411,23.67,113,PASS,,localhost.localdomain,5
+FPGA01,cold,0.5,4,463621,23.52,113,PASS,,localhost.localdomain,5
+FPGA01,cold,0.5,5,470439,24.21,112,PASS,,localhost.localdomain,5
+FPGA01,warm,0.5,1,466276,29.74,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,4.0,1,10569,1.01,115,PASS,,localhost.localdomain,5
+FPGA00,cold,4.0,2,10742,1.02,116,PASS,,localhost.localdomain,5
+FPGA00,cold,4.0,3,10765,0.98,113,PASS,,localhost.localdomain,5
+FPGA00,cold,4.0,4,10863,0.97,114,PASS,,localhost.localdomain,5
+FPGA00,cold,4.0,5,10643,0.99,117,PASS,,localhost.localdomain,5
+FPGA00,warm,4.0,1,11218,1.26,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,4.0,2,11193,1.26,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,4.0,3,11142,1.25,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,0.5,2,473467,29.07,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,4.0,4,13617,1.18,153,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,2.0,1,10908,0.52,115,PASS,,localhost.localdomain,5
+FPGA00,warm,4.0,5,16716,1.20,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,2.0,2,10905,0.50,117,PASS,,localhost.localdomain,5
+FPGA00,cold,2.0,3,11078,0.49,114,PASS,,localhost.localdomain,5
+FPGA00,cold,2.0,4,10958,0.48,114,PASS,,localhost.localdomain,5
+FPGA00,cold,2.0,5,11081,0.51,117,PASS,,localhost.localdomain,5
+FPGA00,warm,2.0,1,15067,0.61,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,2.0,2,14389,0.61,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,2.0,3,15630,0.61,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,2.0,4,13996,0.62,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,2.0,5,13285,0.62,155,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,1.0,1,13037,0.27,114,PASS,,localhost.localdomain,5
+FPGA00,cold,1.0,2,11290,0.27,115,PASS,,localhost.localdomain,5
+FPGA00,cold,1.0,3,11255,0.26,113,PASS,,localhost.localdomain,5
+FPGA00,cold,1.0,4,11078,0.28,114,PASS,,localhost.localdomain,5
+FPGA00,cold,1.0,5,10929,0.27,116,PASS,,localhost.localdomain,5
+FPGA00,warm,1.0,1,18857,0.32,153,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,1.0,2,18702,0.33,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,1.0,3,17790,0.32,152,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,1.0,4,20491,0.34,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,1.0,5,16259,0.32,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,cold,0.5,1,11248,0.16,115,PASS,,localhost.localdomain,5
+FPGA00,cold,0.5,3,11233,0.16,114,PASS,,localhost.localdomain,5
+FPGA00,cold,0.5,2,11488,0.18,118,PASS,,localhost.localdomain,5
+FPGA00,cold,0.5,5,11761,0.16,117,PASS,,localhost.localdomain,5
+FPGA00,cold,0.5,4,11286,0.17,114,PASS,,localhost.localdomain,5
+FPGA00,warm,0.5,1,22049,0.18,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,0.5,2,20978,0.19,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,0.5,3,19513,0.18,154,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,0.5,4,23168,0.18,153,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA00,warm,0.5,5,21725,0.18,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,0.5,3,492331,27.33,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,0.5,4,450400,27.53,157,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5
+FPGA01,warm,0.5,5,445787,26.48,156,PASS,--t0-scale 4 --r0 0.15,localhost.localdomain,5

@@ -1,0 +1,6 @@
+benchmark,config,effort,seed,hpwl,time_s,temps,legal,args,host,parallel
+FPGA04,cold,1.2,3,5463541,945.33,116,PASS,,localhost.localdomain,5
+FPGA04,cold,1.2,5,5483508,951.61,116,PASS,,localhost.localdomain,5
+FPGA04,cold,1.2,1,5410956,959.14,117,PASS,,localhost.localdomain,5
+FPGA04,cold,1.2,2,5504762,964.80,117,PASS,,localhost.localdomain,5
+FPGA04,cold,1.2,4,5543230,966.33,116,PASS,,localhost.localdomain,5
