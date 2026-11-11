@@ -1,0 +1,4 @@
+FPGA01 s0.5 RESULT hpwl=341991 best_seed=4 mean_hpwl=351562 runs=4 effort=9.0550 time=218.87s pass=2
+FPGA01 s0.8 RESULT hpwl=344193 best_seed=4 mean_hpwl=350073 runs=4 effort=9.0495 time=230.21s pass=2
+FPGA02 s0.5 RESULT hpwl=662593 best_seed=3 mean_hpwl=667938 runs=4 effort=9.8384 time=551.87s pass=2
+FPGA02 s0.8 RESULT hpwl=669396 best_seed=4 mean_hpwl=674510 runs=4 effort=9.7339 time=554.65s pass=2

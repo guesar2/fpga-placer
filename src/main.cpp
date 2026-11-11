@@ -6,6 +6,7 @@
 // of [simulated annealing -> median-move refinement], executed in parallel
 // threads with seeds seed, seed+1, ... -> keep the best -> verify -> write.
 #include "analytic.hpp"
+#include "cluster.hpp"
 #include "design.hpp"
 #include "optimize.hpp"
 #include "placement.hpp"
@@ -34,6 +35,9 @@ static double kQpExpectedTemperatures = 117.0;  // cold start; 112-120 on FPGA01
 // and is equal or worse elsewhere (sweep.csv), so it is off by default.
 static const double kWarmT0Scale = 4.0;
 static const double kWarmR0 = 0.15;
+// Temperature count of the flat anneal after unclustering (measured; only
+// used by the adaptive schedule in time-budget mode).
+static const double kFineExpectedTemperatures = 90.0;  // measured 70-86 (K=8, FPGA01-02)
 static const double kWarmExpectedTemperatures = 156.0;  // measured: 155-157 on FPGA01-04
 // Quality saturates well before this on small designs (FPGA00: ~10).
 static const double kMaxEffort = 30.0;
@@ -43,13 +47,22 @@ static const double kAnnealShare = 0.85;  // share of the budget given to anneal
 // so they finish their schedule and remain reproducible.
 static const double kRateSafety = 0.75;
 
+// Default time budget, a single power law in the number of movable cells N
+// (scripts/budget_fit.py): fitted so that it is 70% of the time limit on the
+// benchmarks whose limit binds (FPGA01-03), capped at 3 h. The adaptive
+// schedule keeps a run within ~94% of its budget on any machine, plus a few
+// seconds of loading / analytical placement.
+static double defaultBudget(int N) {
+    return std::min(10800.0, 60.0 + 3.800348e-7 * std::pow((double)std::max(N, 1), 2.1949));
+}
+
 static void usage() {
     std::fprintf(stderr,
                  "usage: placer <sitemap> <nets> <pl> <out.pl> [options]\n"
                  "  --seed S         base random seed (default 1); run i uses S+i\n"
                  "  --runs K         independent annealing runs, best one is kept (default: #cores, max 4)\n"
                  "  --threads T      worker threads (default: min(runs, #cores))\n"
-                 "  --time-budget S  target wall-clock seconds (default: 20 + 0.012 * #movable cells)\n"
+                 "  --time-budget S  target wall-clock seconds (default: min(3 h, 60 + 3.8e-7 * N^2.195), N = movable cells)\n"
                  "  --effort E       fixed annealing effort (VPR inner_num); disables calibration.\n"
                  "                   Same seed + effort + runs => identical result.\n"
                  "  --init MODE      initial placement: qp (analytical, default) or given (input .pl)\n"
@@ -57,6 +70,13 @@ static void usage() {
                  "  --r0 F           initial move window as fraction of grid (default: 1 given, see README for qp)\n"
                  "  --warm-runs W    with --init qp, the last W runs use a warmer start (t0-scale %g, r0 %g)\n"
                  "                   (default 0; ignored if --t0-scale or --r0 is given)\n"
+                 "  --window-passes P  exact window optimization after refinement: P passes (default 0 = off)\n"
+                 "  --window R,C     window = R sites x C columns of one type (default 3,2; at most 8 sites)\n"
+                 "  --cluster K      clustering-driven flow: anneal clusters of up to K cells first,\n"
+                 "                   then uncluster and finish with a cold flat anneal (default 8; 0 = off)\n"
+                 "  --coarse-effort E  effort of the clustered anneal (default: same as --effort)\n"
+                 "  --coarse-share F with a time budget, share of the annealing time for the clustered phase (default 0.5)\n"
+                 "  --fine-t0 F / --fine-r0 F  start of the flat anneal after unclustering (default 0.3 / 0.02)\n"
                  "  --fixed-schedule with a time budget, keep the calibrated moves per temperature\n"
                  "                   instead of re-planning them at each step from the measured rate\n"
                  "  --verbose        print annealing progress\n", kWarmT0Scale, kWarmR0);
@@ -66,7 +86,7 @@ struct RunResult {
     long long cost = -1;
     std::vector<int> x, y;
     AnnealStats st;
-    long long refineGain = 0;
+    long long refineGain = 0, windowGain = 0;
     unsigned seed = 0;
 };
 
@@ -81,6 +101,9 @@ int main(int argc, char** argv) {
     std::string init = "qp";
     double t0Scale = -1, r0 = -1;
     int warmRuns = 0;
+    int clusterK = 8;
+    int windowPasses = 0, windowRows = 3, windowCols = 2;
+    double coarseEffort = -1, coarseShare = 0.5, fineT0 = 0.3, fineR0 = 0.02;
     AnalyticOptions ao;
     for (int i = 5; i < argc; i++) {
         std::string a = argv[i];
@@ -99,6 +122,13 @@ int main(int argc, char** argv) {
         else if (a == "--t0-scale") t0Scale = std::atof(val());
         else if (a == "--r0") r0 = std::atof(val());
         else if (a == "--warm-runs") warmRuns = std::atoi(val());
+        else if (a == "--cluster") clusterK = std::atoi(val());
+        else if (a == "--coarse-effort") coarseEffort = std::atof(val());
+        else if (a == "--coarse-share") coarseShare = std::atof(val());
+        else if (a == "--fine-t0") fineT0 = std::atof(val());
+        else if (a == "--fine-r0") fineR0 = std::atof(val());
+        else if (a == "--window-passes") windowPasses = std::atoi(val());
+        else if (a == "--window") { const char* v = val(); if (std::sscanf(v, "%d,%d", &windowRows, &windowCols) != 2) { usage(); return 2; } }
         else if (a == "--qp-iters") ao.iterations = std::atoi(val());
         else if (a == "--qp-growth") ao.anchorGrowth = std::atof(val());
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); usage(); return 1; }
@@ -118,7 +148,7 @@ int main(int argc, char** argv) {
     threads = std::min(threads, runs);
     // With an explicit --effort and no --time-budget there is no deadline: the
     // schedule always runs to completion (needed for reproducible sweeps).
-    if (budget <= 0) budget = effort > 0 ? 1e9 : 20.0 + 0.012 * N;
+    if (budget <= 0) budget = effort > 0 ? 1e9 : defaultBudget(N);
     const int batches = (runs + threads - 1) / threads;
 
     Placement base(D);
@@ -177,6 +207,19 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "  (last %d runs: t0-scale %.3g  r0 %.3g)", warmRuns, kWarmT0Scale, kWarmR0);
     std::fprintf(stderr, "\n");
 
+    // ---- optional clustering (shared by all runs) -------------------------------
+    Clustering cl;
+    if (clusterK >= 2) {
+        // Dense designs may not have enough k-site blocks: halve k until it fits.
+        for (int k = clusterK; k >= 2 && !cl.ok; k /= 2) {
+            Rng crng(seed ^ 0xC1C1C1ULL);
+            ClusterOptions co;
+            co.k = k;
+            cl = buildClustering(D, base.x, base.y, co, crng, true);
+        }
+        std::fprintf(stderr, "clustering %s (%.2fs)\n", cl.ok ? "built" : "not applicable", secondsSince(start));
+    }
+
     // ---- independent runs --------------------------------------------------
     std::vector<RunResult> results(runs);
     const double t0 = secondsSince(start);
@@ -201,14 +244,32 @@ int main(int argc, char** argv) {
                 opt.adaptive = adaptive;
                 opt.expectedTemps = expectedTempsFor(opt.t0Scale);
                 opt.maxEffort = kMaxEffort;
+                if (cl.ok) {
+                    // Clustered phase, then uncluster and continue cold on the flat netlist.
+                    Placement Pc(cl.coarse);
+                    AnnealOptions co = opt;
+                    if (coarseEffort > 0) co.effort = coarseEffort;
+                    const double now = secondsSince(start);
+                    if (opt.deadline < 1e17) co.deadline = now + coarseShare * (opt.deadline - now);
+                    AnnealStats cs = anneal(Pc, rng, co);
+                    std::vector<int> fx, fy;
+                    cl.uncluster(D, Pc.x, Pc.y, fx, fy);
+                    P.setPositions(fx, fy);
+                    std::fprintf(stderr, "run %d: coarse HPWL %lld (temps %d) -> unclustered HPWL %lld  t=%.1fs\n", r,
+                                 Pc.cost, cs.temperatures, P.cost, secondsSince(start));
+                    opt.t0Scale = fineT0;
+                    opt.r0 = fineR0;
+                    opt.expectedTemps = kFineExpectedTemperatures;
+                }
                 res.st = anneal(P, rng, opt);
                 opt.deadline = batchEnd;
                 res.refineGain = refine(P, rng, opt, 20);
+                if (windowPasses > 0) res.windowGain = windowOpt(P, opt, windowRows, windowCols, windowPasses);
                 res.cost = P.cost;
                 res.x = P.x;
                 res.y = P.y;
-                std::fprintf(stderr, "run %d%s (seed %u): HPWL %lld  temps %d  moves %lld  eff.effort %.3f  refine -%lld%s  t=%.1fs\n",
-                             r, warm ? " warm" : "", res.seed, res.cost, res.st.temperatures, res.st.moves, res.st.effectiveEffort, res.refineGain,
+                std::fprintf(stderr, "run %d%s (seed %u): HPWL %lld  temps %d  moves %lld  eff.effort %.3f  refine -%lld  window -%lld%s  t=%.1fs\n",
+                             r, warm ? " warm" : "", res.seed, res.cost, res.st.temperatures, res.st.moves, res.st.effectiveEffort, res.refineGain, res.windowGain,
                              res.st.hitDeadline ? "  [deadline hit: not reproducible]" : "",
                              secondsSince(start));
             });

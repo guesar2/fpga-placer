@@ -43,4 +43,9 @@ struct Design {
 
     // Parses the three benchmark files. Throws std::runtime_error on malformed input.
     void load(const std::string& sitemap, const std::string& nets, const std::string& pl);
+
+    // Index builders (also used to build the coarse design in cluster.cpp):
+    // sites[] from siteType/typeNames, and cellNetStart/cellNets from the nets.
+    void buildSiteIndex();
+    void buildCellNets();
 };

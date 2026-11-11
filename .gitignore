@@ -23,3 +23,11 @@ benchmarks*/
 .vscode/
 .idea/
 *.swp
+
+# A/B test outputs (scripts/ab.sh)
+ab_out/
+
+# Scratch outputs of one-off tests (results live in the CSVs / README)
+kb_out/
+port_out/
+win_out/

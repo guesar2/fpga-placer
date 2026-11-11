@@ -68,3 +68,10 @@ double measureMoveRate(Placement& P, Rng& rng, double seconds);
 // Greedy refinement: move each cell toward the median of its nets' boxes
 // ("optimal region"), accepting only improvements. Returns HPWL gained.
 long long refine(Placement& P, Rng& rng, const AnnealOptions& opt, int maxPasses);
+
+// Exact optimization of small windows (rows x cols sites of one type): every
+// arrangement of the window's cells over its sites is tried, the best is kept.
+// Deterministic; stops at opt.deadline. Returns HPWL gained.
+struct WindowStats { long long windows = 0; int passes = 0; };
+long long windowOpt(Placement& P, const AnnealOptions& opt, int rows, int cols, int maxPasses,
+                    WindowStats* stats = nullptr);
