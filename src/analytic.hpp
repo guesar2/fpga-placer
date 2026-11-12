@@ -17,16 +17,26 @@
 
 #include <vector>
 
+/// Settings of the analytical placement (CLI: --qp-iters, --qp-growth).
 struct AnalyticOptions {
-    int iterations = 24;          // spreading iterations
-    double anchor0 = 0.01;        // first anchor weight
-    double anchorGrowth = 1.6;    // anchor weight multiplier per iteration
-    bool verbose = false;
+    int iterations = 24;        ///< Spreading iterations (legalize, anchor, re-solve).
+    double anchor0 = 0.01;      ///< Anchor weight in the first spreading iteration.
+    double anchorGrowth = 1.6;  ///< Anchor weight multiplier per iteration.
+    bool verbose = false;       ///< Print the HPWL of every iteration to stderr.
 };
 
-// Writes a legal placement into P (fixed cells untouched). Returns its HPWL.
+/// Computes a quadratic placement with SimPL-style spreading and writes the
+/// best legal result found into P. Fixed cells are not moved.
+/// @param P   Placement to overwrite; its cost and boxes are rebuilt.
+/// @param opt Spreading settings.
+/// @return HPWL of the placement written into P.
 long long analyticInit(Placement& P, const AnalyticOptions& opt);
 
-// Nearest-free-site legalization of real-valued targets (exposed for reuse).
+/// Legalizes real-valued target positions: cells of each type, in order of
+/// distance from their type's centroid, take the nearest free compatible site.
+/// Fixed cells keep their coordinates.
+/// @param D          Design whose cells are legalized.
+/// @param fx,fy      Target coordinates of every cell.
+/// @param outX,outY  Receive the legal integer coordinates of every cell.
 void legalize(const Design& D, const std::vector<double>& fx, const std::vector<double>& fy,
               std::vector<int>& outX, std::vector<int>& outY);

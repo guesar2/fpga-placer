@@ -20,27 +20,42 @@
 
 #include <vector>
 
+/// Settings of the clustering (CLI: --cluster K).
 struct ClusterOptions {
-    int k = 4;                 // max cells per cluster (= block height)
-    int maxNetDegree = 16;     // nets above this size are ignored when scoring
-    int minTypeCells = 1000;   // cluster a type only if it has this many movable cells
+    int k = 4;                ///< Maximum cells per cluster (= block height in sites).
+    int maxNetDegree = 16;    ///< Nets with more pins are ignored when scoring cell pairs.
+    int minTypeCells = 1000;  ///< A type is clustered only if it has at least this many movable cells.
 };
 
+/// Result of clustering: the coarse design plus the maps between fine cells
+/// and clusters.
 struct Clustering {
-    Design coarse;                       // clusters as cells, block anchors as sites
-    std::vector<int> clusterOf;          // fine cell -> coarse cell
-    std::vector<int> memStart, members;  // coarse cell -> its fine cells (CSR)
-    std::vector<char> clustered;         // per type: was it clustered?
-    int k = 1;
-    bool ok = false;                     // false: clustering not applicable (use flat flow)
+    Design coarse;                       ///< Clusters as cells, block anchor sites as sites.
+    std::vector<int> clusterOf;          ///< Fine cell id -> coarse cell id.
+    std::vector<int> memStart, members;  ///< Coarse cell -> its fine cells, in CSR form.
+    std::vector<char> clustered;         ///< Per type id: 1 if that type was clustered.
+    int k = 1;                           ///< Block height actually used.
+    bool ok = false;                     ///< false if clustering does not apply (use the flat flow).
 
-    // Fine positions from a coarse placement: members of a cluster fill the
-    // sites of its block (in member order). Singletons keep their site.
+    /// Converts a coarse placement into fine positions: the members of each
+    /// cluster fill the sites of its block in member order, and singletons
+    /// keep their site. The result is legal by construction.
+    /// @param D      The fine design.
+    /// @param cx,cy  Coordinates of every coarse cell.
+    /// @param fx,fy  Receive the coordinates of every fine cell.
     void uncluster(const Design& D, const std::vector<int>& cx, const std::vector<int>& cy,
                    std::vector<int>& fx, std::vector<int>& fy) const;
 };
 
-// Builds the clustering. fineX/fineY (e.g. the analytical placement) give the
-// initial coarse placement: each cluster is legalized near its members' centroid.
+/// Groups cells by heavy-edge matching (score: sum of 1/(|e|-1) over shared
+/// nets) into single-type clusters of at most opt.k cells, and builds the
+/// coarse design with an initial legal placement.
+/// @param D            The fine design.
+/// @param fineX,fineY  A fine placement (e.g. the analytical one); each cluster
+///                     starts legalized near its members' centroid.
+/// @param opt          Clustering settings.
+/// @param rng          Random source for the order in which cells are matched.
+/// @param verbose      Print clustering statistics to stderr.
+/// @return The clustering; check `ok` before using it.
 Clustering buildClustering(const Design& D, const std::vector<int>& fineX, const std::vector<int>& fineY,
                            const ClusterOptions& opt, Rng& rng, bool verbose);

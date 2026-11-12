@@ -12,32 +12,63 @@
 #include <climits>
 #include <vector>
 
+/// Axis-aligned bounding box of one net, with pin counts on each edge.
+///
+/// The edge counts make updates incremental: when a pin leaves an edge that
+/// other pins still sit on, the box is unchanged and no rescan is needed.
 struct BBox {
-    int xmin, xmax, ymin, ymax;  // box
-    int nxmin, nxmax, nymin, nymax;  // pins sitting on each edge
+    int xmin, xmax, ymin, ymax;      ///< Box extent in site coordinates (inclusive).
+    int nxmin, nxmax, nymin, nymax;  ///< Number of pins lying on each edge.
+
+    /// Half-perimeter wirelength of the box: (xmax - xmin) + (ymax - ymin).
     long long hpwl() const { return (long long)(xmax - xmin) + (ymax - ymin); }
 };
 
+/// Mutable placement of a Design: cell positions, site occupancy and per-net
+/// bounding boxes, with the total HPWL kept up to date incrementally.
+///
+/// Typical use is evaluate() to price a move, then commit() if it is accepted.
 class Placement {
 public:
+    /// Creates a placement of `d` at the coordinates of the input .pl
+    /// (Design::initX / initY) and builds occupancy, boxes and cost.
+    /// @param d Design to place; must outlive this object.
     explicit Placement(const Design& d);
 
-    const Design& D;
-    std::vector<int> x, y;   // position of each cell
-    std::vector<int> occ;    // site (x*H+y) -> cell id, -1 if empty
-    std::vector<BBox> box;   // per net
-    long long cost = 0;      // total HPWL
+    const Design& D;          ///< The design being placed.
+    std::vector<int> x, y;    ///< Site coordinates of each cell, indexed by cell id.
+    std::vector<int> occ;     ///< Occupancy by site index (see site()): cell id, or -1 if empty.
+    std::vector<BBox> box;    ///< Bounding box of each net, indexed by net id.
+    long long cost = 0;       ///< Current total HPWL (sum of box[n].hpwl()).
 
+    /// Linear index of site (sx, sy) into occ.
     int site(int sx, int sy) const { return sx * D.H + sy; }
 
-    void setPositions(const std::vector<int>& nx, const std::vector<int>& ny);  // rebuilds everything
-    long long fullHpwl() const;           // from scratch, for verification
-    bool isLegal(std::string* why) const; // checks every rule of the project spec
+    /// Places every cell at (nx[c], ny[c]) and rebuilds occupancy, boxes and cost.
+    /// @param nx,ny Coordinates for every cell, fixed cells included.
+    void setPositions(const std::vector<int>& nx, const std::vector<int>& ny);
 
-    // Proposed move: cell `a` goes to (tx,ty). If that site holds movable cell b,
-    // b goes to a's old site (swap). Returns the HPWL change. Must be followed by
-    // commit() or by another evaluate() (which discards this one).
+    /// Recomputes total HPWL from scratch, ignoring cached boxes (for verification).
+    /// @return Total HPWL; equals `cost` when the incremental state is consistent.
+    long long fullHpwl() const;
+
+    /// Checks every legality rule in the project spec: each cell on a site of
+    /// its own type, no overlaps, fixed cells at their original coordinates.
+    /// @param why If non-null and the placement is illegal, receives a reason.
+    /// @return true if the placement is legal.
+    bool isLegal(std::string* why) const;
+
+    /// Computes the HPWL change of moving cell `a` to (tx, ty) without changing
+    /// the state. If the target holds a movable cell b, the move is a swap and
+    /// b goes to a's old site. Nets containing both a and b are skipped.
+    /// @pre The target site is compatible with a's type and holds no fixed cell.
+    /// @return HPWL change (negative means an improvement).
+    /// @note Only the most recent evaluation is kept; another evaluate()
+    ///       discards it, commit() applies it.
     long long evaluate(int a, int tx, int ty);
+
+    /// Applies the move priced by the last evaluate(), updating positions,
+    /// occupancy, boxes and cost.
     void commit();
 
 private:

@@ -32,3 +32,8 @@ ab_out/
 kb_out/
 port_out/
 win_out/
+
+# Synthetic stress benchmarks (scripts/make_stress.py) and window A/B scratch
+/stress/
+window_ab_out/
+effort_ab_out/

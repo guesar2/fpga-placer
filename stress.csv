@@ -1,0 +1,3 @@
+design,cells,hpwl,time_s,peak_mb,deadline_hits,clustering,legal,options
+S25,58148,7012665,1200.13,146,0,clustered,PASS,"--time-budget 1200"
+S45,66953,8225147,1200.32,168,0,flat-fallback,PASS,"--time-budget 1200"

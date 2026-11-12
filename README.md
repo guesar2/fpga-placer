@@ -36,6 +36,7 @@ Ejemplo:
 |---|---|---|
 | `--seed S` | semilla base; la corrida *i* usa `S+i` | 1 |
 | `--runs K` | corridas independientes; se guarda la mejor | nº de núcleos (máx. 4) |
+| `--max-runs M` | con presupuesto de tiempo, si el esfuerzo llega a su tope (diseños pequeños), se hacen más tandas de corridas con el tiempo sobrante, hasta M corridas en total; M ≤ K lo desactiva | 64 |
 | `--threads T` | hilos de trabajo | `min(runs, núcleos)` |
 | `--time-budget S` | tiempo objetivo total en segundos | `min(3 h, 60 + 3.8·10⁻⁷ · N^2.195)`, N = celdas móviles (ver abajo) |
 | `--effort E` | esfuerzo fijo del annealing (`inner_num` de VPR); desactiva la calibración y, si no se da `--time-budget`, el límite de tiempo | calibrado |
@@ -50,7 +51,7 @@ Ejemplo:
 | `--coarse-effort E` | esfuerzo de la fase de clusters con `--effort` fijo | igual a `--effort` |
 | `--fine-t0 F`, `--fine-r0 F` | arranque del annealing plano después de deshacer los clusters | 0.3, 0.02 |
 | `--fixed-schedule` | con presupuesto de tiempo, mantiene fijos los movimientos por temperatura calibrados (sin re-planificar en cada paso) | re-planificación activa |
-| `--window-passes P` | optimización exacta por ventanas después del refinamiento: P pasadas (ver *Algoritmo*) | 0 (desactivada) |
+| `--window-passes P` | optimización exacta por ventanas después del refinamiento: P pasadas (ver *Algoritmo*); 0 la desactiva | 3 |
 | `--window R,C` | ventana de R sitios × C columnas de un mismo tipo (máx. 8 sitios) | 3,2 |
 | `--verbose` | muestra el progreso | – |
 
@@ -237,20 +238,41 @@ recocido plano desde la colocación analítica.
 6. **Refinamiento por medianas** (*optimal region*): cada celda se intenta mover
    al sitio compatible más cercano a la región mediana de las cajas de sus nets
    (calculadas sin la celda), aceptando sólo mejoras.
-   Opcionalmente (`--window-passes P`, desactivado por defecto) se hace después
-   una **optimización exacta por ventanas**: para cada ventana de R × C sitios
+   Después se hace una **optimización exacta por ventanas** (`--window-passes P`,
+   3 pasadas por defecto; 0 la desactiva): para cada ventana de R × C sitios
    de un mismo tipo (3 × 2 por defecto, máx. 8 sitios) se prueban todas las
    asignaciones de sus celdas a sus sitios (algoritmo de Heap) y se conserva
-   la mejor. Es determinista y respeta el límite de tiempo. En pruebas de una
-   semilla ganó 0.39 % en FPGA01 con esfuerzo 1 (≈ 6 s por pasada) y
-   0.11–0.21 % sobre las salidas v4 de FPGA03/04 (≈ 26–30 s por pasada); no
-   se usó en las salidas entregadas.
+   la mejor. Es determinista, sólo acepta mejoras y usa el 5 % del presupuesto
+   que se reserva después del annealing, por lo que no le quita tiempo al
+   annealing ni puede exceder el presupuesto. En pruebas de una semilla ganó
+   0.39 % en FPGA01 con esfuerzo 1 (≈ 6 s por pasada) y 0.11–0.21 % sobre las
+   salidas v4 de FPGA03/04 (≈ 26–30 s por pasada). Con el presupuesto por
+   defecto en FPGA01 (semillas 1–3, `window_ab_fpga01.csv`) las 3 pasadas
+   ganaron en las 3 semillas: media 340 112 contra 342 795 (−0.78 %), con
+   14 s más de tiempo (233 s contra 218 s, límite 360 s). Se activó por
+   defecto en v6.
 7. **Varias corridas** independientes en hilos; se verifica legalidad y HPWL
    completo de la mejor antes de escribir el archivo. Opcionalmente (`--warm-runs W`),
    W corridas pueden usar un arranque más caliente (T0 = 4·σ, ventana 15 %).
    En el barrido sólo mejoró FPGA04 con esfuerzo 1 (−1.6 %); con esfuerzo 2–4
    empata y en los demás benchmarks es igual o peor, por lo que está
    desactivado por defecto.
+
+   **Reinicios en diseños pequeños (v7, `--max-runs`).** Si la calibración
+   llega al tope de esfuerzo (30), el diseño no puede usar todo su
+   presupuesto: en FPGA00 cada corrida termina en 7 s de 60 s. Ahí más
+   esfuerzo no ayuda, pero las corridas caen en cuencas distintas: de 20
+   corridas, 5 terminaron en ≈ 10.3–10.6 k y 15 en ≈ 11.4–12.0 k (10 % peor),
+   así que el mejor de 4 sólo encuentra la cuenca buena con probabilidad
+   1 − 0.75⁴ ≈ 68 %. Por eso, cuando el esfuerzo está en el tope, se lanzan
+   más tandas de corridas (semillas S+4, S+5, …) mientras la siguiente quepa
+   (1.5 veces la duración de la anterior, dentro del 90 % del presupuesto),
+   hasta 64 corridas. Cada corrida usa el esfuerzo fijo del tope, así que es
+   determinista; sólo la cantidad de tandas depende de la velocidad de la
+   máquina. FPGA01–04 no llegan al tope, así que su comportamiento no cambia.
+   Con 4 hilos caben ≈ 28 corridas en FPGA00 (cuenca buena con
+   probabilidad ≈ 99.97 %). Las semillas de invocaciones distintas deben
+   separarse al menos 64.
 
 ## Referencias
 
@@ -271,6 +293,7 @@ recocido plano desde la colocación analítica.
   in Electrical Circuit Layout", *IEEE Trans. Circuits and Systems*, 1981.
   (Región óptima por medianas.)
 - D. Blackman y S. Vigna, generador xoshiro256** (dominio público).
+- S. Vigna, generador splitmix64 (dominio público), usado para expandir la semilla al estado inicial de xoshiro256**.
 - E. Carvajal Barboza, *IE0411 – Diseño Físico Parte 2: Posicionamiento* (presentación del curso).
 
 ## Experimentos
@@ -414,6 +437,29 @@ presupuesto (`--runs` = nº de núcleos, máx. 4). Esa corrida queda cerca del
 promedio por corrida de v5 (FPGA01 352 142, FPGA02 666 297): lo que se pierde
 es sobre todo el "mejor de 4". Forzar 4 corridas en 1 hilo es peor, porque
 cada una recibe un cuarto del tiempo.
+
+### Robustez en diseños más grandes y densos (para FPGA05)
+
+FPGA05 no está disponible, y su objetivo de HPWL (38.9 M, contra 21.8 M de
+FPGA04) sugiere un diseño más grande. Para probar el flujo por defecto en ese
+caso se generaron diseños sintéticos a partir de FPGA04 con
+`scripts/make_stress.py`: se copia una parte conexa de las celdas (búsqueda en
+anchura sobre nets de ≤ 16 pines), las nets se copian con sus celdas copiadas,
+los IO fijos se comparten y la entrada es un placement aleatorio legal.
+`scripts/stress_test.sh` los corre e informa memoria y si el clustering se
+desactivó. Presupuesto de 20 min, v6, semilla 1 (`stress.csv`):
+
+| Diseño | Celdas | Uso CLB / DSP | Flujo | HPWL | Tiempo | Memoria | Legal |
+|---|---|---|---|---|---|---|---|
+| S25 (FPGA04 + 25 %) | 58 148 | 84 % / 99 % | con clustering (7 693 clusters, 8 400 bloques) | 7 012 665 | 1200 s | 146 MB | PASS |
+| S45 (FPGA04 + 45 % de CLB) | 66 953 | 98 % / 65 % | plano (hay más clusters que bloques con K = 8, 4 y 2) | 8 225 147 | 1200 s | 168 MB | PASS |
+
+Ambos son legales y sin cortes del annealing por tiempo. Con estos tamaños el
+presupuesto por defecto es el tope de 3 h (60 % del límite de FPGA05). Las
+corridas terminan justo en el presupuesto porque la optimización por ventanas
+se detiene en el límite de cada lote; con el presupuesto por defecto la
+reserva posterior al annealing es de unos 9 min y alcanza para las 3 pasadas.
+El código no supone una cuadrícula de 168 × 480: todo se lee del `.sitemap`.
 
 ## Conservación del mejor estado del annealing
 
