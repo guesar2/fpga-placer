@@ -7,7 +7,24 @@ baja temperatura) con actualización incremental del HPWL, y refinamiento
 greedy por medianas. Ejecuta varias corridas independientes en paralelo (una semilla por
 corrida) y conserva la mejor.
 
+## Archivos `.pl` generados (resultados entregados)
 
+Los archivos `.pl` generados para cada benchmark asignado están en la carpeta
+`outputs/`, uno por benchmark, con el nombre y la ruta de la especificación:
+
+| Benchmark | Archivo `.pl` generado | HPWL | Semilla |
+|---|---|---|---|
+| FPGA00 | [`outputs/FPGA00/new_FPGA00.pl`](outputs/FPGA00/new_FPGA00.pl) | 10 275 | 1 |
+| FPGA01 | [`outputs/FPGA01/new_FPGA01.pl`](outputs/FPGA01/new_FPGA01.pl) | 341 585 | 17 |
+| FPGA02 | [`outputs/FPGA02/new_FPGA02.pl`](outputs/FPGA02/new_FPGA02.pl) | 656 598 | 9 |
+| FPGA03 | [`outputs/FPGA03/new_FPGA03.pl`](outputs/FPGA03/new_FPGA03.pl) | 2 717 840 | 1 |
+| FPGA04 | [`outputs/FPGA04/new_FPGA04.pl`](outputs/FPGA04/new_FPGA04.pl) | 5 152 475 | 5 |
+
+En cada carpeta `outputs/FPGAxx/` también están `result.txt` (línea `RESULT`
+del placer: HPWL, tiempo y corridas) y `evaluator.txt` (salida del evaluador
+del curso; todas las salidas pasan `integrity` y `legality`). Cada archivo es
+el mejor de los experimentos descritos en *Resultados finales*. Para
+verificarlos sin volver a ejecutar el placer: `make evaluate`.
 
 ## Compilación
 
