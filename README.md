@@ -17,6 +17,58 @@ Requiere `g++` (≥ 7) o `clang++` con soporte de C++17 y `make`.
 make            # genera el ejecutable ./placer
 ```
 
+## Reproducir los resultados
+
+El `Makefile` compila el placer, lo ejecuta con la configuración por defecto
+(presupuesto de tiempo por defecto) y la semilla de la salida entregada, y
+verifica el resultado con el evaluador del curso. Se espera la estructura de
+la especificación: `benchmarks/FPGAxx/FPGAxx.{sitemap,nets,pl}` y el
+`evaluator` en la raíz del proyecto o dentro de `benchmarks/`.
+
+```bash
+make results      # todos los benchmarks que haya en benchmarks/ (también FPGA05)
+make FPGA01       # un solo benchmark: FPGA00, FPGA01, ..., FPGA05
+make evaluate     # sólo verifica los .pl que ya están en outputs/ (sin ejecutar el placer)
+make evaluate-FPGA01
+```
+
+Cada benchmark escribe `outputs/FPGAxx/new_FPGAxx.pl` (la ruta de la
+especificación), la línea `RESULT` en `outputs/FPGAxx/result.txt` y la salida
+del evaluador en `outputs/FPGAxx/evaluator.txt`, e imprime si la salida es
+legal y su HPWL. **`make results` y `make FPGAxx` sobrescriben las salidas
+entregadas en `outputs/`**; para conservarlas, usar otra carpeta con
+`OUT_DIR`. Variables que se pueden cambiar:
+
+| Variable | Significado | Valor por defecto |
+|---|---|---|
+| `BENCH_DIR` | carpeta con los benchmarks | `benchmarks` |
+| `OUT_DIR` | carpeta de salida | `outputs` |
+| `EVALUATOR` | ruta del evaluador | `./evaluator` o `$(BENCH_DIR)/evaluator` |
+| `PLACER_FLAGS` | opciones adicionales para el placer | (ninguna) |
+| `SEED_FPGAxx` / `SEED` | semilla base por benchmark / para los demás (FPGA05) | semillas de las salidas entregadas / 1 |
+
+Ejemplo: `make results BENCH_DIR=../benchmarks OUT_DIR=/tmp/salidas`.
+
+Semillas de las salidas entregadas (las del `Makefile`):
+
+| Benchmark | FPGA00 | FPGA01 | FPGA02 | FPGA03 | FPGA04 | FPGA05 |
+|---|---|---|---|---|---|---|
+| `--seed` | 1 | 17 | 9 | 1 | 5 | 1 |
+
+Tiempos esperados en un i5-9600K de 6 núcleos: FPGA00 ≈ 1 min, FPGA01 ≈ 4 min,
+FPGA02 ≈ 10 min, FPGA03 ≈ 1 h 45 min, FPGA04 ≈ 1 h 50 min, FPGA05 hasta 3 h
+(tope del presupuesto); todos dentro de su límite.
+
+**Qué se reproduce exactamente.** Con el presupuesto de tiempo (el modo por
+defecto), el placer mide la velocidad de la máquina y ajusta el trabajo a
+ella (ver *Reproducibilidad*), así que la misma semilla da una salida de la
+misma calidad pero no necesariamente idéntica: en otra máquina, o con otra
+carga, el HPWL varía dentro de la dispersión entre corridas medida en
+*Experimentos* (≈ 0.5–2 % según el benchmark). En FPGA01 las corridas caen en
+una de dos cuencas (≈ 342 k o ≈ 357 k), y el mejor de 4 corridas cae en la
+buena con probabilidad ≈ 91 %. Para resultados idénticos bit a bit se usa
+`--effort` fijo (`PLACER_FLAGS="--effort E"`), que no depende del reloj.
+
 ## Ejecución
 
 ```bash
@@ -49,6 +101,7 @@ Ejemplo:
 | `--cluster K` | tamaño máximo de los clusters (bloques de K sitios); 0 = sin clustering | 8 |
 | `--coarse-share F` | con presupuesto de tiempo, fracción del tiempo de annealing para la fase de clusters | 0.5 |
 | `--coarse-effort E` | esfuerzo de la fase de clusters con `--effort` fijo | igual a `--effort` |
+| `--coarse-starts C` | intentos de la fase de clusters por corrida, cada uno con 1/C de su tiempo (o esfuerzo); continúa el mejor (experimental) | 1 |
 | `--fine-t0 F`, `--fine-r0 F` | arranque del annealing plano después de deshacer los clusters | 0.3, 0.02 |
 | `--fixed-schedule` | con presupuesto de tiempo, mantiene fijos los movimientos por temperatura calibrados (sin re-planificar en cada paso) | re-planificación activa |
 | `--window-passes P` | optimización exacta por ventanas después del refinamiento: P pasadas (ver *Algoritmo*); 0 la desactiva | 3 |
@@ -111,6 +164,12 @@ scripts/ab.sh <dir_benchmarks> <binario_A> <binario_B> FPGA03,FPGA04 [opciones] 
 scripts/budget_fit.py --bench-dir <dir_benchmarks> --sweep sweep.csv  # ajuste del presupuesto por defecto + gráfico
 scripts/budget_ab.sh <dir_benchmarks> FPGA03 600 2 salida.csv ./placer "plano:--cluster 0" "s05:--coarse-share 0.5"
                                                                       # configuraciones con igual presupuesto, 1 hilo, CSV
+scripts/final_stats.sh <dir_benchmarks> ./placer <dir_salida> 1,5,9,13,17  # estadística de la configuración por defecto
+                                                                      # (semillas separadas por el nº de corridas, ver Experimentos)
+scripts/window_ab.sh <dir_benchmarks> ./placer FPGA01 1,2,3 3 salida.csv  # ventanas: 0 contra P pasadas, mismo presupuesto
+scripts/effort_ab.sh <dir_benchmarks> ./placer FPGA01 5.0,6.2 101,102 salida.csv  # esfuerzo fijo, 1 hilo (no depende de la carga)
+python3 -I scripts/make_stress.py <dir_benchmark> FPGA04 stress/S25 --fraction 0.25  # diseño sintético más grande y denso
+scripts/stress_test.sh stress ./placer stress.csv S25,S45 --time-budget 1200      # robustez: legalidad, memoria, clustering
 ```
 
 ### Barridos de parámetros (`scripts/sweep.py`, `scripts/summarize.py`)
@@ -400,22 +459,39 @@ ruido entre semillas).
 
 ### Resultados finales (configuración por defecto, 6 núcleos)
 
-`scripts/run_benchmarks.sh benchmarks__0411_entrega outputs`, semilla 1,
-4 corridas en paralelo, presupuesto de tiempo por defecto. Todas las salidas
-pasan `integrity` y `legality` del evaluador.
+`scripts/final_stats.sh`, presupuesto de tiempo por defecto, 4 hilos, una
+invocación a la vez. Cada experimento es una invocación con una semilla base
+distinta; las semillas se separan por el número de corridas para que ninguna
+se repita. FPGA01–04 usan `bin/placer-v6` (semillas 1, 5, 9, 13, 17; en FPGA03
+y FPGA04 sólo 1 y 5, porque cada invocación tarda ≈ 1 h 45 min) y FPGA00 usa
+`bin/placer-v7` (reinicios, 28 corridas por invocación; semillas 1, 65, 129,
+193, 257). Datos: `final_v6/stats.csv` y `final_v7_fpga00/stats.csv`. Todas
+las salidas pasan `integrity` y `legality` del evaluador y ninguna corrida
+llegó al límite de su presupuesto.
 
-| Benchmark | Objetivo HPWL | Límite | Sin clustering (v4) | Con clustering (v5, por defecto) |
-|---|---|---|---|---|
-| FPGA00 | 52 880 | 5 min | 10 359 (7 s) | **10 359** (7 s; sin clusters, diseño muy pequeño) |
-| FPGA01 | 1 453 168 | 6 min | 369 584 (4.0 min) | **343 305** (3.6 min) |
-| FPGA02 | 2 716 304 | 15 min | 693 350 (9.2 min) | **660 839** (9.2 min) |
-| FPGA03 | 11 528 160 | 2 h 30 | 2 820 491 (100 min) | **2 719 649** (101 min) |
-| FPGA04 | 21 846 668 | 4 h | 5 255 568 (104 min) | **5 186 448** (105 min) |
+| Benchmark | Objetivo HPWL | Límite | Exp. (corridas) | Mejor | Promedio | Desv. est. | Tiempo |
+|---|---|---|---|---|---|---|---|
+| FPGA00 | 52 880 | 5 min | 5 (140) | **10 275** | 10 354 | 66 (0.6 %) | 48 s |
+| FPGA01 | 1 453 168 | 6 min | 5 (20) | **341 585** | 344 862 | 6 847 (2.0 %) | 3.9 min |
+| FPGA02 | 2 716 304 | 15 min | 5 (20) | **656 598** | 663 596 | 4 260 (0.6 %) | 9.5 min |
+| FPGA03 | 11 528 160 | 2 h 30 | 2 (8) | **2 717 840** | 2 721 292 | 4 881 (0.2 %) | 103 min |
+| FPGA04 | 21 846 668 | 4 h | 2 (8) | **5 152 475** | 5 165 074 | 17 818 (0.3 %) | 106 min |
 
-Las salidas entregadas en `outputs/` son las de la versión con clustering
-(binario congelado `bin/placer-v5`); las de la versión sin clustering quedan en
-`outputs_v4/`. Ninguna corrida llegó al límite de su presupuesto: FPGA01–04 usan entre 44 %
-y 68 % del límite de tiempo de su benchmark (FPGA00, 2 %).
+Mejor, promedio y desviación se calculan sobre el mejor resultado de cada
+experimento; el tiempo es el promedio por experimento. FPGA01–04 usan entre
+44 % y 68 % del límite de tiempo de su benchmark (FPGA00, 16 %). Las salidas
+entregadas en `outputs/` son las del mejor experimento de cada benchmark
+(semillas en *Reproducir los resultados*).
+
+En FPGA00 las corridas caen en dos cuencas (≈ 10.3–10.6 k y ≈ 11.4–12.0 k);
+con 4 corridas por invocación (v6) la desviación entre experimentos era
+5.5 % (promedio 10 768), y con los reinicios de v7 todos los experimentos
+encuentran la cuenca buena.
+
+Versiones anteriores (una invocación, semilla 1): sin clustering (v4,
+`outputs_v4/`) FPGA01 369 584, FPGA02 693 350, FPGA03 2 820 491, FPGA04
+5 255 568; con clustering (v5, `outputs_v5/`) 343 305, 660 839, 2 719 649 y
+5 186 448; FPGA00 10 359 en ambas.
 
 ### Máquinas con menos núcleos
 
